@@ -128,6 +128,7 @@ Extras
 | 2026-11-11 | Windows 0.4.0: amount in Thai words removed from the shortcut and from Settings; three tray-menu commands added (number → words, words → Arabic number, words → Thai number), each explaining what to select when the selection does not fit. Tests: 52,667 checks. Compiles cleanly; not yet run. |
 | 2026-11-12 | @kafaak asked about Node.js 20 warnings on GitHub Actions. They concern GitHub's build steps only, not the app. Moved `actions/checkout` and `actions/upload-artifact` from v4 to v6, which run on Node.js 24. |
 | 2026-11-12 | Windows 0.4.1: About Salap window and tray-menu item; `CHANGELOG.md` added. Compiles cleanly; not yet run. |
+| 2026-11-12 | The first 0.4.1 build (run 43098675776) never left GitHub's queue and could not be cancelled or re-run; a known GitHub-side fault. Pushed an empty commit to start a fresh build, which passed on Linux, macOS and Windows with no Node.js warnings. The stuck run can be ignored. |
 
 ## Open items
 
