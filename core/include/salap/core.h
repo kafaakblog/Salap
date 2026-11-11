@@ -74,8 +74,7 @@ enum Feature : unsigned {
     FixLanguage = 1,
     Numerals = 2,
     Years = 4,
-    BahtText = 8,
-    AllFeatures = 15,
+    AllFeatures = 7,
 };
 
 // True when the text looks wrong on the layout it was typed on and right on
@@ -88,8 +87,10 @@ bool layout_fix_likely(std::u32string_view text);
 // press the next, then the original text again. Empty if nothing applies.
 //   text in Latin letters      -> the language fix only (digits in it are keys)
 //   mistyped-looking Thai text -> the language fix only
-//   หนึ่งพัน...บาทถ้วน            -> the number
-//   text with digits           -> other digit script, year, amount in words
+//   a year with พ.ศ. / ค.ศ.     -> the other era, and the other digit script
+//   text with digits           -> the other digit script
+// Amounts in Thai words are deliberately not part of this: they are separate
+// commands in the apps' menus (baht_text, parse_baht_text).
 std::vector<std::u32string> conversion_cycle(std::u32string_view text,
                                              unsigned features = AllFeatures);
 

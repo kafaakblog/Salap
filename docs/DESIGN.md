@@ -51,7 +51,7 @@ A ค.ศ. result is always written in Arabic digits. A พ.ศ. result is writt
 
 In the shortcut's cycle, a dotted label (`พ.ศ. 2569`) puts the year conversion first. An undotted one (`พศ 2569`) could be something else, such as a licence plate, so the digit switch goes first and the year conversion is the next press.
 
-### One shortcut for everything
+### One shortcut
 
 `conversion_cycle` returns the conversions that fit a selection, in the order to offer them. The app pastes the first; each further press pastes the next, and after the last one the original text comes back.
 
@@ -59,14 +59,15 @@ In the shortcut's cycle, a dotted label (`พ.ศ. 2569`) puts the year conversi
 |---|---|
 | Mostly Latin letters | the language fix only |
 | Thai letters that look mistyped | the language fix only |
-| An amount in Thai words | the number |
 | Has a year with พ.ศ. / ค.ศ. | the other era, then the digit switch |
-| Contains digits | other digit script, amount in words (if it is a number) |
+| Contains digits | the other digit script |
 | Anything else with letters | the language fix |
 
-Features the user has switched off are left out.
+Features the user has switched off are left out; they remain in the menu.
 
-Text in Latin letters is always treated as Thai typed on the English layout, because its digits are Thai-letter keys: `8'gf=` is `คงเดช`, not a number. The cost is that real English with a number in it ("Room 12") cannot have its digits switched with the shortcut; the tray menu's numerals command still does that.
+Amounts in Thai words are not part of the shortcut. With them in the cycle a plain number took three presses to come back to itself, and the shortcut was harder to predict. They are three menu commands instead: number to words, words to Arabic number, words to Thai number.
+
+Text in Latin letters is always treated as Thai typed on the English layout, because its digits are Thai-letter keys: `8'gf=` is `คงเดช`, not a number. The cost is that real English with a number in it ("Room 12") cannot have its digits switched with the shortcut; the menu's numerals command still does that.
 
 "Look mistyped" is `layout_fix_likely`: it counts Thai spelling impossibilities (a tone mark with no consonant, a leading vowel with nothing after it) and un-English word shapes (punctuation between letters, no vowel), in the text and in its converted form, and says yes when converting makes the count go down. It is a hint, not a dictionary: Thai-layout text that happens to be spellable, like `ไนพสก` for `world`, is not recognised, though it still gets the fix when nothing else applies. Auto-correct will need something stronger.
 
@@ -111,9 +112,8 @@ Defaults: Ctrl tapped twice converts, Ctrl+Alt+Z undoes.
 
 ## Planned next
 
-1. Windows 0.4.0: amount in Thai words moves out of the shortcut into three tray-menu commands.
-2. Hands-on testing of the Windows build, then fixes.
-3. Windows extras: hiding the badge over full-screen apps, an installer.
-4. **macOS app**: the same features, in Swift.
+1. Hands-on testing of the Windows build, then fixes.
+2. Windows extras: hiding the badge over full-screen apps, an installer.
+3. **macOS app**: the same features, in Swift.
 
 Set aside, not planned: auto-correct while typing and its learned-words list (see the log), and remembering the language per app.

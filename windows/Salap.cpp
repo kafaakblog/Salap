@@ -37,7 +37,7 @@ using std::min;
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 
-#define SALAP_VERSION L"0.3.2"
+#define SALAP_VERSION L"0.4.0"
 
 namespace {
 
@@ -46,15 +46,16 @@ namespace {
 // ---------------------------------------------------------------------------
 
 enum Str {
-    S_CONVERT, S_FIX, S_NUM, S_YEAR, S_BAHT, S_UNDO, S_SETTINGS, S_QUIT,
+    S_CONVERT, S_FIX, S_NUM, S_YEAR, S_TO_WORDS, S_WORDS_AR, S_WORDS_TH, S_UNDO, S_SETTINGS, S_QUIT,
     S_SETTINGS_TITLE, S_SEC_GENERAL, S_RUN_LOGIN, S_LANGUAGE, S_LANG_AUTO,
     S_SEC_CONVERT, S_SC_MAIN, S_SC_UNDO, S_TAP_TWICE, S_COMBO,
-    S_FEATURES, S_F_FIX, S_F_NUM, S_F_YEAR, S_F_BAHT, S_KEEP_SEL, S_EXCLUDED_BTN,
+    S_FEATURES, S_F_FIX, S_F_NUM, S_F_YEAR, S_KEEP_SEL, S_EXCLUDED_BTN,
     S_SEC_BADGE, S_BADGE, S_POSITION, S_POS_BR, S_POS_BL, S_POS_TR, S_POS_TL,
     S_DISTANCE, S_COLOR_TH, S_COLOR_EN,
     S_SAVE, S_CANCEL, S_HK_FAIL,
     S_EX_TITLE, S_EX_INFO, S_EX_BUILTIN, S_EX_ADD_RUNNING, S_EX_BROWSE, S_EX_REMOVE,
     S_EX_CLOSE, S_EX_NONE_RUNNING, S_YEAR_HINT, S_FEATURES_NOTE,
+    S_HINT_NUMBER, S_HINT_WORDS,
     S_COUNT
 };
 
@@ -63,7 +64,9 @@ const wchar_t* const kEn[] = {
     L"Fix wrong-language text",
     L"Switch Thai / Arabic numerals",
     L"Convert year (พ.ศ. ⇄ ค.ศ.)",
-    L"Amount in Thai words ⇄ number",
+    L"Number → Thai words",
+    L"Thai words → Arabic number",
+    L"Thai words → Thai number",
     L"Undo last conversion",
     L"Settings…",
     L"Quit Salap",
@@ -81,7 +84,6 @@ const wchar_t* const kEn[] = {
     L"Fix text typed in the wrong language",
     L"Switch Thai / Arabic numerals",
     L"Convert year: select พ.ศ. or ค.ศ. together with the year",
-    L"Amount in Thai words ⇄ number",
     L"Keep the converted text selected",
     L"Apps where Salap is off…",
     L"Language badge",
@@ -106,7 +108,9 @@ const wchar_t* const kEn[] = {
     L"Close",
     L"(no other apps are open)",
     L"To convert a year, select it together with พ.ศ. or ค.ศ.\n\nFor example: select “พ.ศ. 2569”, not just “2569”.",
-    L"Unticked ones are still in the menu of the Salap icon near the clock.",
+    L"These, and amounts in Thai words, are also in the menu of the Salap icon near the clock.",
+    L"Select a number first, such as 1,250 or ๑,๒๕๐.50.",
+    L"Select an amount written in Thai words first, such as หนึ่งพันสองร้อยห้าสิบบาทถ้วน.",
 };
 
 const wchar_t* const kTh[] = {
@@ -114,7 +118,9 @@ const wchar_t* const kTh[] = {
     L"แก้ข้อความที่พิมพ์ผิดภาษา",
     L"สลับเลขไทย / เลขอารบิก",
     L"แปลงปี (พ.ศ. ⇄ ค.ศ.)",
-    L"จำนวนเงินเป็นตัวอักษร ⇄ ตัวเลข",
+    L"ตัวเลข → ตัวอักษร (บาท)",
+    L"ตัวอักษร (บาท) → เลขอารบิก",
+    L"ตัวอักษร (บาท) → เลขไทย",
     L"ย้อนการแปลงล่าสุด",
     L"ตั้งค่า…",
     L"ออกจาก Salap",
@@ -132,7 +138,6 @@ const wchar_t* const kTh[] = {
     L"แก้ข้อความที่พิมพ์ผิดภาษา",
     L"สลับเลขไทย / เลขอารบิก",
     L"แปลงปี: ต้องเลือกคำว่า พ.ศ. หรือ ค.ศ. พร้อมกับปี",
-    L"จำนวนเงินเป็นตัวอักษร ⇄ ตัวเลข",
     L"เลือกข้อความที่แปลงแล้วค้างไว้",
     L"แอปที่ไม่ให้ Salap ทำงาน…",
     L"ป้ายบอกภาษา",
@@ -157,7 +162,9 @@ const wchar_t* const kTh[] = {
     L"ปิด",
     L"(ไม่มีแอปอื่นเปิดอยู่)",
     L"การแปลงปีต้องเลือกคำว่า พ.ศ. หรือ ค.ศ. พร้อมกับปีด้วย\n\nเช่น เลือก “พ.ศ. 2569” ไม่ใช่เลือกแค่ “2569”",
-    L"รายการที่ไม่ได้ติ๊กยังใช้ได้จากเมนูของไอคอน Salap ข้างนาฬิกา",
+    L"รายการเหล่านี้ และการแปลงจำนวนเงินเป็นตัวอักษร ใช้ได้จากเมนูของไอคอน Salap ข้างนาฬิกาด้วย",
+    L"กรุณาเลือกตัวเลขก่อน เช่น 1,250 หรือ ๑,๒๕๐.50",
+    L"กรุณาเลือกจำนวนเงินที่เขียนเป็นตัวอักษรก่อน เช่น หนึ่งพันสองร้อยห้าสิบบาทถ้วน",
 };
 
 static_assert(ARRAYSIZE(kEn) == S_COUNT, "English strings out of step with Str");
@@ -730,7 +737,7 @@ void CALLBACK ForegroundChanged(HWINEVENTHOOK, DWORD, HWND w, LONG, LONG, DWORD,
 // Converting the selection
 // ---------------------------------------------------------------------------
 
-enum Kind { K_CYCLE, K_FIX, K_NUM, K_BAHT, K_YEAR, K_UNDO };
+enum Kind { K_CYCLE, K_FIX, K_NUM, K_YEAR, K_TO_WORDS, K_WORDS_AR, K_WORDS_TH, K_UNDO };
 
 struct LastConversion {
     bool valid = false;
@@ -807,6 +814,11 @@ void RunAction(Kind kind, bool fromMenu) {
         RestoreClipboard(backup);
         Fail();
     };
+    // The menu commands say what they need when the selection is not it.
+    auto explain = [&](Str hint) {
+        RestoreClipboard(backup);
+        MessageBoxW(nullptr, T(hint), L"Salap", MB_ICONINFORMATION | MB_OK | MB_SETFOREGROUND);
+    };
     // A trailing line break usually means the app copied a whole line or
     // cell because nothing was selected. Leave those alone.
     if (sel.empty() || sel.size() > 5000 || sel.back() == L'\n' || sel.back() == L'\r')
@@ -839,20 +851,24 @@ void RunAction(Kind kind, bool fromMenu) {
         case K_NUM:
             out = W(salap::convert_numerals(U(sel)));
             break;
-        case K_BAHT: {
-            std::u32string r;
-            if (!salap::parse_baht_text(U(sel), r) && !salap::baht_text(U(sel), r)) return giveUp();
-            out = W(r);
-            break;
-        }
         case K_YEAR: {
             int n = 0;
             out = W(salap::convert_years(U(sel), &n));
-            if (!n) {
-                RestoreClipboard(backup);
-                MessageBoxW(nullptr, T(S_YEAR_HINT), L"Salap", MB_ICONINFORMATION | MB_OK | MB_SETFOREGROUND);
-                return;
-            }
+            if (!n) return explain(S_YEAR_HINT);
+            break;
+        }
+        case K_TO_WORDS: {
+            std::u32string r;
+            if (!salap::baht_text(U(sel), r)) return explain(S_HINT_NUMBER);
+            out = W(r);
+            break;
+        }
+        case K_WORDS_AR:
+        case K_WORDS_TH: {
+            std::u32string r;
+            if (!salap::parse_baht_text(U(sel), r)) return explain(S_HINT_WORDS);
+            if (kind == K_WORDS_TH) r = salap::convert_numerals(r, salap::NumeralDirection::ToThai);
+            out = W(r);
             break;
         }
         case K_UNDO:
@@ -1116,7 +1132,7 @@ void UpdateBadge() {
 // Tray icon and menu
 // ---------------------------------------------------------------------------
 
-enum MenuId { M_CYCLE = 1, M_FIX, M_NUM, M_YEAR, M_BAHT, M_UNDO, M_SETTINGS, M_QUIT };
+enum MenuId { M_CYCLE = 1, M_FIX, M_NUM, M_YEAR, M_TO_WORDS, M_WORDS_AR, M_WORDS_TH, M_UNDO, M_SETTINGS, M_QUIT };
 
 HICON g_trayIcon, g_bigIcon;
 
@@ -1154,7 +1170,10 @@ void ShowMenu() {
     item(M_FIX, S_FIX, nullptr, true);
     item(M_NUM, S_NUM, nullptr, true);
     item(M_YEAR, S_YEAR, nullptr, true);
-    item(M_BAHT, S_BAHT, nullptr, true);
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    item(M_TO_WORDS, S_TO_WORDS, nullptr, true);
+    item(M_WORDS_AR, S_WORDS_AR, nullptr, true);
+    item(M_WORDS_TH, S_WORDS_TH, nullptr, true);
     AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
     item(M_UNDO, S_UNDO, &g_set.undo, g_last.valid);
     AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
@@ -1173,7 +1192,9 @@ void ShowMenu() {
         case M_FIX: RunAction(K_FIX, true); break;
         case M_NUM: RunAction(K_NUM, true); break;
         case M_YEAR: RunAction(K_YEAR, true); break;
-        case M_BAHT: RunAction(K_BAHT, true); break;
+        case M_TO_WORDS: RunAction(K_TO_WORDS, true); break;
+        case M_WORDS_AR: RunAction(K_WORDS_AR, true); break;
+        case M_WORDS_TH: RunAction(K_WORDS_TH, true); break;
         case M_UNDO: RunAction(K_UNDO, true); break;
         case M_SETTINGS: OpenSettings(); break;
         case M_QUIT: DestroyWindow(g_main); break;
@@ -1188,7 +1209,7 @@ enum CtrlId {
     C_RUN = 100, C_LANG,
     C_MAIN,       // +0 tap radio, +2 combination radio, +3 modifier, +4 modifier, +5 key
     C_UNDO = C_MAIN + 6,
-    C_F_FIX = C_UNDO + 6, C_F_NUM, C_F_YEAR, C_F_BAHT, C_KEEP, C_EXCLUDED,
+    C_F_FIX = C_UNDO + 6, C_F_NUM, C_F_YEAR, C_KEEP, C_EXCLUDED,
     C_BADGE, C_POS, C_GAP, C_SAVE, C_CANCEL,
     C_SW_TH = 200,  // + palette index
     C_SW_EN = 220,
@@ -1322,9 +1343,8 @@ void BuildSettings(HWND w) {
     check(L + 14, LW - 14, C_F_FIX, S_F_FIX, (g_set.features & salap::FixLanguage) != 0, WS_GROUP);
     check(L + 14, LW - 14, C_F_NUM, S_F_NUM, (g_set.features & salap::Numerals) != 0);
     check(L + 14, LW - 14, C_F_YEAR, S_F_YEAR, (g_set.features & salap::Years) != 0);
-    check(L + 14, LW - 14, C_F_BAHT, S_F_BAHT, (g_set.features & salap::BahtText) != 0);
-    Ctl(w, L"STATIC", T(S_FEATURES_NOTE), 0, 0, L + 14, y + 2, LW - 14, 20, -1);
-    y += 32;
+    Ctl(w, L"STATIC", T(S_FEATURES_NOTE), 0, 0, L + 14, y + 2, LW - 14, 38, -1);
+    y += 50;
     check(L, LW, C_KEEP, S_KEEP_SEL, g_set.keepSelected);
     y += 4;
     Ctl(w, L"BUTTON", T(S_EXCLUDED_BTN), WS_TABSTOP, 0, L, y, 230, 28, C_EXCLUDED);
@@ -1396,7 +1416,6 @@ void SaveFromSettings(HWND w) {
     if (checked(C_F_FIX)) features |= salap::FixLanguage;
     if (checked(C_F_NUM)) features |= salap::Numerals;
     if (checked(C_F_YEAR)) features |= salap::Years;
-    if (checked(C_F_BAHT)) features |= salap::BahtText;
     g_set.features = features;
     g_set.keepSelected = checked(C_KEEP);
     g_set.excluded = g_pendingExcluded;

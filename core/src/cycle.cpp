@@ -136,8 +136,6 @@ std::vector<std::u32string> conversion_cycle(std::u32string_view text, unsigned 
         return out;
     }
 
-    std::u32string tmp;
-    if ((features & BahtText) && parse_baht_text(text, tmp)) add(tmp);
     // A year written with a dotted label (พ.ศ. 2569) is a clear request, so it
     // goes first. Without the dots (พศ 2569) it could be something else, such
     // as a licence plate, so there the digit switch goes first and the year
@@ -155,7 +153,6 @@ std::vector<std::u32string> conversion_cycle(std::u32string_view text, unsigned 
     if (dotted) add_years();
     if (features & Numerals) add(convert_numerals(text));
     if (!dotted) add_years();
-    if ((features & BahtText) && baht_text(text, tmp)) add(tmp);
 
     // Nothing else applies: trust the user and offer the language fix anyway.
     if (out.empty() && can_fix) add(convert_layout(text));

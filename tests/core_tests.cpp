@@ -244,9 +244,10 @@ static void test_cycle() {
     OK(conversion_cycle(U"ประชุมทาง Zoom 3 ครั้ง") == V{U"ประชุมทาง Zoom ๓ ครั้ง"});
     // With the language fix switched off, Latin text falls back to the rest.
     OK(conversion_cycle(U"Room 12", Numerals) == V{U"Room ๑๒"});
-    // Numbers: other script, then year if it is one, then words.
-    OK(conversion_cycle(U"1,250") == (V{U"๑,๒๕๐", U"หนึ่งพันสองร้อยห้าสิบบาทถ้วน"}));
-    OK(conversion_cycle(U"2569") == (V{U"๒๕๖๙", U"สองพันห้าร้อยหกสิบเก้าบาทถ้วน"}));
+    // Numbers: a plain switch between the two digit scripts.
+    OK(conversion_cycle(U"1,250") == V{U"๑,๒๕๐"});
+    OK(conversion_cycle(U"๑,๒๕๐") == V{U"1,250"});
+    OK(conversion_cycle(U"2569") == V{U"๒๕๖๙"});
     // A year with its label: the year conversion comes first.
     OK(conversion_cycle(U"พ.ศ. 2569") == (V{U"ค.ศ. 2026", U"พ.ศ. ๒๕๖๙"}));
     OK(conversion_cycle(U"พ.ศ. ๒๕๖๙") == (V{U"ค.ศ. 2026", U"พ.ศ. 2569"}));
@@ -257,8 +258,9 @@ static void test_cycle() {
     // Correct Thai with digits is not turned into gibberish.
     OK(conversion_cycle(U"ข้อ 3 วรรค 2") == V{U"ข้อ ๓ วรรค ๒"});
     OK(conversion_cycle(U"วันที่ ๑๑ พ.ศ. ๒๕๖๙") == (V{U"วันที่ ๑๑ ค.ศ. 2026", U"วันที่ 11 พ.ศ. 2569"}));
-    // Amount in words goes back to the number.
-    OK(conversion_cycle(U"หนึ่งพันสองร้อยห้าสิบบาทถ้วน") == V{U"1,250"});
+    // Amounts in words are not the shortcut's business; with nothing else to
+    // offer, plain Thai text gets the language fix like any other.
+    OK(conversion_cycle(U"หนึ่งพันสองร้อยห้าสิบบาทถ้วน").size() == 1);
     // Correct text with nothing else to do: the fix is still offered.
     OK(conversion_cycle(U"hello") == V{U"้ำสสน"});
     OK(conversion_cycle(U"ไนพสก") == V{U"world"});
@@ -267,8 +269,8 @@ static void test_cycle() {
     OK(conversion_cycle(U"").empty());
     // Switched-off features are skipped.
     OK(conversion_cycle(U"1,250", Numerals) == V{U"๑,๒๕๐"});
-    OK(conversion_cycle(U"1,250", BahtText) == V{U"หนึ่งพันสองร้อยห้าสิบบาทถ้วน"});
-    OK(conversion_cycle(U"l;ylfu", Numerals | Years | BahtText).empty());
+    OK(conversion_cycle(U"1,250", FixLanguage | Years).empty());
+    OK(conversion_cycle(U"l;ylfu", Numerals | Years).empty());
     OK(conversion_cycle(U"พ.ศ. 2569", FixLanguage | Years) == V{U"ค.ศ. 2026"});
     OK(conversion_cycle(U"พ.ศ. 2569", Numerals) == V{U"พ.ศ. ๒๕๖๙"});
 
@@ -386,12 +388,12 @@ static void test_c_api() {
     OK(s && std::strcmp(s, "21") == 0);
     salap_free(s);
     OK(salap_parse_baht_text("21") == nullptr);
-    salap_cycle* c = salap_conversion_cycle("1,250", 15);
-    OK(salap_cycle_count(c) == 2);
+    salap_cycle* c = salap_conversion_cycle("1,250", 7);
+    OK(salap_cycle_count(c) == 1);
     OK(salap_cycle_item(c, 0) && std::strcmp(salap_cycle_item(c, 0), to_utf8(U"๑,๒๕๐").c_str()) == 0);
-    OK(salap_cycle_item(c, 2) == nullptr);
+    OK(salap_cycle_item(c, 1) == nullptr);
     salap_cycle_free(c);
-    c = salap_conversion_cycle(nullptr, 15);
+    c = salap_conversion_cycle(nullptr, 7);
     OK(salap_cycle_count(c) == 0);
     salap_cycle_free(c);
     salap_free(nullptr);

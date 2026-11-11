@@ -50,7 +50,7 @@ A small macOS and Windows app for Thai users that fixes text typed in the wrong 
 | 2026-11-11 | Settings and the tray menu say that พ.ศ. or ค.ศ. must be selected with the year; the tray command explains this when it finds no labelled year. | Requested by @kafaak. |
 | 2026-11-11 | Year conversion can be used both ways, by the user's choice: ticked in Settings it is part of the shortcut; unticked it is in the tray menu only. The same holds for every conversion, and Settings says so. | @kafaak: "keep both", after weighing shortcut against menu-only. |
 | 2026-11-11 | **"Remember language per app" is dropped** from the scope. | Decided by @kafaak. Windows has a built-in per-window option, and Salap could only ask other apps to switch, which some ignore. |
-| 2026-11-11 | Agreed for 0.4.0, not yet built: the shortcut does only the language fix, the numeral switch and labelled-year conversion. Amount in Thai words leaves the shortcut and Settings and becomes three tray-menu commands: number → Thai words, Thai words → Arabic number, Thai words → Thai number. | Decided by @kafaak: words in the shortcut "will only make it complicated". Waiting for the go-ahead to build. |
+| 2026-11-11 | Built in 0.4.0: the shortcut does only the language fix, the numeral switch and labelled-year conversion. Amount in Thai words leaves the shortcut and Settings and becomes three tray-menu commands: number → Thai words, Thai words → Arabic number, Thai words → Thai number. | Decided by @kafaak: words in the shortcut "will only make it complicated". |
 | 2026-11-11 | Tap counts (3× for year, 4× for words) are not used. | Considered and set aside: every conversion would wait half a second for more taps, and counting taps is error-prone. |
 | 2026-11-11 | **Auto-correct while typing is set aside as a "dream feature"**, not planned. If it is ever built it fixes the language only, never numbers. | Decided by @kafaak. It needs Salap to watch all typing, real Thai and English word lists, and retyping in other apps; wrong guesses change text the user did not ask to change. |
 | 2026-11-11 | **"Learned words" is set aside with it.** | It exists only to stop auto-correct from fixing words the user has approved, so it has no use without auto-correct. |
@@ -84,8 +84,8 @@ Extras
 | 3 | Thai ⇄ Arabic numerals | Done | Built, untested | Not started |
 | 4 | Language badge: position, distance, colors | Placement done | Rebuilt in 0.2.0, untested | Not started |
 | 5 | Settings: run at login, feature switches, shortcuts | n/a | Rebuilt in 0.2.0, untested | Not started |
-| 6 | One shared shortcut for all conversions | Done | Rebuilt in 0.2.0, untested | Not started |
-| 7 | Amount in Thai words ⇄ number | Done | Built, untested | Not started |
+| 6 | One shared shortcut: language, numerals, year | Done | Rebuilt in 0.4.0, untested | Not started |
+| 7 | Amount in Thai words ⇄ number, from the tray menu | Done | Rebuilt in 0.4.0, untested | Not started |
 | 8 | พ.ศ. ⇄ ค.ศ. | Done | Built, untested | Not started |
 | 9 | Undo last conversion, with its own shortcut | n/a | Rebuilt in 0.2.0, untested | Not started |
 | 10 | Excluded apps, with its own window | n/a | Rebuilt in 0.2.0, untested | Not started |
@@ -121,10 +121,12 @@ Extras
 | 2026-11-11 | @kafaak tested 0.3.0: year conversion did not work as expected. Asked that it require the พ.ศ. / ค.ศ. label and listed eight spellings to support. |
 | 2026-11-11 | Windows 0.3.1: year conversion rewritten around the label, with ranges; cycle order updated; hint text in Settings and on the tray command. Tests: 52,666 checks. Compiles cleanly; not yet run. |
 | 2026-11-11 | Windows 0.3.2: Settings now states that unticked conversions remain in the tray menu. |
+| 2026-11-11 | Scope review with @kafaak: per-app language dropped; auto-correct and learned words set aside as dream features; amount in words moved out of the shortcut. |
+| 2026-11-11 | Windows 0.4.0: amount in Thai words removed from the shortcut and from Settings; three tray-menu commands added (number → words, words → Arabic number, words → Thai number), each explaining what to select when the selection does not fit. Tests: 52,667 checks. Compiles cleanly; not yet run. |
 
 ## Open items
 
-- **Windows 0.3.2 still needs checking by hand:** year conversion, the number cycle, undo, the Settings window, the excluded-apps window, and badge position, distance and colors with a normal and an enlarged pointer.
+- **Windows 0.4.0 still needs checking by hand:** year conversion, the three Thai-words menu commands, the digit switch, undo, the Settings window, the excluded-apps window, and badge position, distance and colors with a normal and an enlarged pointer.
 - English text with a number in it cannot have its digits switched by the shortcut (tray menu only).
 - The icon is detailed and blurs at the 16-pixel tray size; a simplified small version would be sharper.
 - How Windows reports the enlarged pointer size is an assumption (`CursorBaseSize` × screen scaling); to be checked on a real PC.
