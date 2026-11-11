@@ -64,21 +64,4 @@ std::u32string convert_layout(std::u32string_view text, LayoutDirection directio
     return out;
 }
 
-Action smart_action(std::u32string_view text) {
-    bool digits = false;
-    for (char32_t c : text) {
-        if (detail::is_ascii_letter(c) || detail::is_thai_letter(c)) return Action::FixLanguage;
-        if (detail::is_digit(c)) digits = true;
-    }
-    return digits ? Action::Numerals : Action::None;
-}
-
-Action alternate_action(Action a) {
-    switch (a) {
-        case Action::FixLanguage: return Action::Numerals;
-        case Action::Numerals: return Action::FixLanguage;
-        default: return Action::None;
-    }
-}
-
 }  // namespace salap

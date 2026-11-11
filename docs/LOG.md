@@ -32,6 +32,15 @@ A small macOS and Windows app for Thai users that fixes text typed in the wrong 
 | 2026-11-11 | The smart shortcut cycles: first guess → the other conversion → original text. | Gives "press again to switch" and an undo with one key. |
 | 2026-11-11 | Terminals are excluded by default; the list is editable. | Ctrl+C interrupts programs in a terminal. |
 | 2026-11-11 | The badge follows the pointer with a 16 ms timer, not a mouse hook. | A hook would make the mouse stutter while Salap is busy converting. |
+| 2026-11-11 | **One shortcut does every conversion.** Each press pastes the next conversion that fits the selection, then the original. Settings has one shortcut plus a checklist of which conversions it uses. Replaces the five separate shortcuts. | Requested by @kafaak. |
+| 2026-11-11 | A shortcut can be a modifier tapped twice (Ctrl, Alt, Shift) or two modifiers plus a key, chosen from drop-down lists instead of a "press the keys" box. | Requested by @kafaak; easier to understand. |
+| 2026-11-11 | Defaults: **Ctrl twice** converts, **Ctrl+Alt+Z** undoes. Supersedes Ctrl+Alt+S. | @kafaak asked for Ctrl twice and an undo shortcut. |
+| 2026-11-11 | Key combinations always have two modifiers. | A single one would let Salap take over Ctrl+S, Ctrl+C and the like. Chosen by Claude. |
+| 2026-11-11 | Wrong-language text gets only the language fix in the cycle; correct text is never turned into gibberish unless nothing else applies. | Otherwise every press on Thai text with digits would pass through nonsense. Chosen by Claude. |
+| 2026-11-11 | "Amount in Thai words" is a toggle: the words convert back to a number (`1,250`, or `1,250.50` with satang). | Requested by @kafaak. Number format chosen by Claude. |
+| 2026-11-11 | Excluded apps get their own window. Built-in terminals are listed but locked; users add apps from a list of open apps or by browsing. | Requested by @kafaak. |
+| 2026-11-11 | Badge: user-chosen corner and distance, placed against the visible cursor shape; 7 preset colors each for Thai and English. | Requested by @kafaak (badge was too far from the pointer). |
+| 2026-11-11 | Salap makes no sound when nothing is selected. | A double tap can happen by accident. Chosen by Claude. |
 
 ## Approved scope
 
@@ -60,19 +69,19 @@ Extras
 | 1 | Fix selected wrong-language text | Done | Built, untested | Not started |
 | 2 | Auto-correct while typing | Not started | Not started | Not started |
 | 3 | Thai ⇄ Arabic numerals | Done | Built, untested | Not started |
-| 4 | Language badge at the pointer | Placement done | Built, untested | Not started |
-| 5 | Settings: run at login, feature switches, shortcuts | n/a | Built, untested | Not started |
-| 6 | One shared shortcut | Done | Built, untested | Not started |
-| 7 | Amount in Thai words | Done | Built, untested | Not started |
+| 4 | Language badge: position, distance, colors | Placement done | Rebuilt in 0.2.0, untested | Not started |
+| 5 | Settings: run at login, feature switches, shortcuts | n/a | Rebuilt in 0.2.0, untested | Not started |
+| 6 | One shared shortcut for all conversions | Done | Rebuilt in 0.2.0, untested | Not started |
+| 7 | Amount in Thai words ⇄ number | Done | Built, untested | Not started |
 | 8 | พ.ศ. ⇄ ค.ศ. | Done | Built, untested | Not started |
-| 9 | Undo last conversion | n/a | Built, untested | Not started |
-| 10 | Excluded apps | n/a | Built, untested | Not started |
+| 9 | Undo last conversion, with its own shortcut | n/a | Rebuilt in 0.2.0, untested | Not started |
+| 10 | Excluded apps, with its own window | n/a | Rebuilt in 0.2.0, untested | Not started |
 | 11 | Remember language per app | n/a | Not started | Not started |
 | 12 | Learned words | Not started | Not started | Not started |
 | 13 | Thai and English interface | n/a | Built, untested | Not started |
 | 14 | Fully offline | Done | Done (no network code) | Not started |
 
-"Built, untested" means the code compiles and is in the test build, but nobody has run it on Windows yet.
+"Untested" means the code compiles and is in the test build, but has not been checked by hand on Windows. @kafaak ran 0.1.0 and reported the badge sat too far from the pointer; no other results yet.
 
 ## Work done
 
@@ -91,10 +100,14 @@ Extras
 | 2026-11-11 | Added `caret_steps` and `place_badge` to the engine; tests now run 9,023 checks. |
 | 2026-11-11 | Wrote the Windows app (`windows/Salap.cpp`, version 0.1.0): tray icon and menu, five shortcuts, clipboard-based selection replace with re-selection and clipboard restore, smart cycle, undo, excluded apps, language badge sized to the pointer, Settings window in Thai and English, run at login. It compiles cleanly with MinGW; it has not been run. |
 | 2026-11-11 | CI now builds `Salap.exe` on Windows and publishes it as the artifact **Salap-Windows-x64**. |
+| 2026-11-11 | @kafaak tried 0.1.0 and sent feedback: double-tap shortcut, drop-down shortcut picker, one shortcut for everything, friendlier excluded-apps screen, adjustable badge position, badge colors, undo shortcut. |
+| 2026-11-11 | Engine: added `conversion_cycle`, `layout_fix_likely`, `parse_baht_text`; badge placement now works from the visible cursor shape, a corner and a gap. Tests: 52,639 checks. |
+| 2026-11-11 | Windows 0.2.0: all of the feedback above. Settings rebuilt in two columns with live badge preview; new excluded-apps window; double-tap detection on its own thread. Compiles cleanly; not yet run. |
 
 ## Open items
 
-- **The Windows app has never been run.** It needs a hands-on test: conversion in Notepad, Word and a browser; the badge with a normal and an enlarged pointer; Settings; run at login.
+- **Windows 0.2.0 has not been run.** It needs a hands-on test: double-tap Ctrl and the cycle in Notepad, Word and a browser; undo; the new Settings window; the excluded-apps window; badge position, distance and colors with a normal and an enlarged pointer.
+- Wrong-language detection is a spelling-rules hint only; a stronger check is needed before auto-correct.
 - How Windows reports the enlarged pointer size is an assumption (`CursorBaseSize` × screen scaling); to be checked on a real PC.
 - Re-selecting the converted text assumes one Left-arrow press per Thai character cluster; apps may differ.
 - Name "Salap" not yet checked against existing apps and trademarks.

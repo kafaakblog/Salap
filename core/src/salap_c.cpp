@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <vector>
 
 #include "salap/core.h"
 
@@ -46,13 +47,31 @@ char* salap_convert_years(const char* text, int* converted) {
     return dup(salap::convert_years(in(text), converted));
 }
 
-int salap_smart_action(const char* text) {
-    switch (salap::smart_action(in(text))) {
-        case salap::Action::FixLanguage: return 1;
-        case salap::Action::Numerals: return 2;
-        default: return 0;
-    }
+char* salap_parse_baht_text(const char* words) {
+    std::u32string out;
+    if (!salap::parse_baht_text(in(words), out)) return nullptr;
+    return dup(out);
 }
+
+struct salap_cycle {
+    std::vector<std::string> items;
+};
+
+salap_cycle* salap_conversion_cycle(const char* text, unsigned features) {
+    auto* c = new salap_cycle;
+    for (const std::u32string& s : salap::conversion_cycle(in(text), features))
+        c->items.push_back(salap::to_utf8(s));
+    return c;
+}
+
+int salap_cycle_count(const salap_cycle* c) { return c ? static_cast<int>(c->items.size()) : 0; }
+
+const char* salap_cycle_item(const salap_cycle* c, int index) {
+    if (!c || index < 0 || index >= static_cast<int>(c->items.size())) return nullptr;
+    return c->items[index].c_str();
+}
+
+void salap_cycle_free(salap_cycle* c) { delete c; }
 
 void salap_free(char* s) { std::free(s); }
 

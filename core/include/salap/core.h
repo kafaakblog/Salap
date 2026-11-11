@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace salap {
 
@@ -60,18 +61,33 @@ bool baht_text(std::u32string_view number, std::u32string& out);
 // `converted`, if given, receives how many years were changed.
 std::u32string convert_years(std::u32string_view text, int* converted = nullptr);
 
-// ---- One shortcut, two conversions ----------------------------------------
-enum class Action {
-    None,         // nothing convertible selected
-    FixLanguage,  // selection contains letters
-    Numerals,     // selection contains digits but no letters
+// ---- Amount in Thai words, back to a number ---------------------------------
+// "หนึ่งพันสองร้อยห้าสิบบาทถ้วน" -> "1,250"; with satang -> "1,250.50".
+// Only accepts text exactly as baht_text writes it. Returns false otherwise.
+bool parse_baht_text(std::u32string_view words, std::u32string& number_out);
+
+// ---- One shortcut for everything ---------------------------------------------
+enum Feature : unsigned {
+    FixLanguage = 1,
+    Numerals = 2,
+    Years = 4,
+    BahtText = 8,
+    AllFeatures = 15,
 };
 
-// What the shared shortcut should do first for this selection.
-Action smart_action(std::u32string_view text);
+// True when the text looks wrong on the layout it was typed on and right on
+// the other one, judged by Thai spelling rules and the shape of English
+// words. A hint, not a dictionary check.
+bool layout_fix_likely(std::u32string_view text);
 
-// What pressing the shortcut again should switch to.
-Action alternate_action(Action a);
+// The conversions that make sense for a selection, in the order the shared
+// shortcut should offer them. The app pastes the first, and on each further
+// press the next, then the original text again. Empty if nothing applies.
+//   wrong-language text        -> the fixed text only
+//   หนึ่งพัน...บาทถ้วน            -> the number
+//   text with digits           -> other digit script, year, amount in words
+std::vector<std::u32string> conversion_cycle(std::u32string_view text,
+                                             unsigned features = AllFeatures);
 
 // ---- Helpers for the apps --------------------------------------------------
 
@@ -86,18 +102,20 @@ struct Rect {
 struct Point {
     int x, y;
 };
+enum class Corner { BottomRight, BottomLeft, TopRight, TopLeft };
+
 struct BadgeInput {
-    Point pointer;         // pointer position (the hotspot) on screen
-    int cursor_w, cursor_h;  // size of the cursor image as displayed
-    int hot_x, hot_y;        // hotspot inside that image
+    Point pointer;  // pointer position (the hotspot) on screen
+    Rect cursor;    // the visible part of the cursor image, relative to the pointer
     int badge_w, badge_h;
-    int gap;                 // space to leave between cursor and badge
-    Rect screen;             // the monitor the pointer is on
+    Corner corner;  // which corner of the cursor the badge sits at
+    int gap;        // space between cursor and badge; may be negative to overlap
+    Rect screen;    // the monitor the pointer is on
 };
 
-// Top-left corner for the language badge: below and to the right of the
-// cursor image, flipped to the other side at the right and bottom edges, and
-// always inside the screen when it fits.
+// Top-left corner for the language badge: at the chosen corner of the cursor,
+// flipped to the opposite side where it would leave the screen, and always
+// inside the screen when it fits.
 Point place_badge(const BadgeInput& in);
 
 }  // namespace salap

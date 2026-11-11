@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <vector>
 
 #include "salap/core.h"
 #include "salap/salap_c.h"
@@ -176,17 +177,71 @@ static void test_years() {
     EQ(convert_years(U"ปี 2569."), U"ปี 2026.");
 }
 
-static void test_smart_action() {
-    OK(smart_action(U"l;ylfu") == Action::FixLanguage);
-    OK(smart_action(U"g-hk.0") == Action::FixLanguage);
-    OK(smart_action(U"้ำสสน") == Action::FixLanguage);
-    OK(smart_action(U"1,234.50") == Action::Numerals);
-    OK(smart_action(U"๑๒๓") == Action::Numerals);
-    OK(smart_action(U"... ") == Action::None);
-    OK(smart_action(U"") == Action::None);
-    OK(alternate_action(Action::FixLanguage) == Action::Numerals);
-    OK(alternate_action(Action::Numerals) == Action::FixLanguage);
-    OK(alternate_action(Action::None) == Action::None);
+static std::u32string unbaht(const char32_t* s) {
+    std::u32string out;
+    return parse_baht_text(s, out) ? out : U"<not an amount>";
+}
+
+static void test_parse_baht_text() {
+    EQ(unbaht(U"หนึ่งพันสองร้อยห้าสิบบาทถ้วน"), U"1,250");
+    EQ(unbaht(U"ศูนย์บาทถ้วน"), U"0");
+    EQ(unbaht(U"สิบเอ็ดบาทถ้วน"), U"11");
+    EQ(unbaht(U"ยี่สิบเอ็ดบาทห้าสิบสตางค์"), U"21.50");
+    EQ(unbaht(U"ห้าสิบสตางค์"), U"0.50");
+    EQ(unbaht(U"หนึ่งสตางค์"), U"0.01");
+    EQ(unbaht(U"หนึ่งล้านเอ็ดบาทถ้วน"), U"1,000,001");
+    EQ(unbaht(U"หนึ่งล้านล้านบาทถ้วน"), U"1,000,000,000,000");
+    EQ(unbaht(U"ลบห้าบาทถ้วน"), U"-5");
+    EQ(unbaht(U"  หนึ่งร้อยบาทถ้วน "), U"100");
+    // Every amount that baht_text writes reads back as the same number.
+    for (const char32_t* n : {U"0", U"7", U"10", U"19", U"20", U"99", U"100", U"101", U"111",
+                              U"1,000", U"10,001", U"110,011", U"999,999", U"1,000,000",
+                              U"12,345,678.90", U"999,999,999,999,999,999", U"0.25", U"3.07"}) {
+        EQ(unbaht(baht(n).c_str()), n);
+    }
+    // Not amounts, or not written the standard way.
+    EQ(unbaht(U"หนึ่งร้อย"), U"<not an amount>");
+    EQ(unbaht(U"สิบหนึ่งบาทถ้วน"), U"<not an amount>");
+    EQ(unbaht(U"หนึ่งบาท"), U"<not an amount>");
+    EQ(unbaht(U"บาทถ้วน"), U"<not an amount>");
+    EQ(unbaht(U"สวัสดี"), U"<not an amount>");
+    EQ(unbaht(U""), U"<not an amount>");
+}
+
+static void test_cycle() {
+    typedef std::vector<std::u32string> V;
+    // Wrong-language text gets the fix and nothing else.
+    OK(conversion_cycle(U"l;ylfu") == V{U"สวัสดี"});
+    OK(conversion_cycle(U"g-hk.0") == V{U"เข้าใจ"});
+    OK(conversion_cycle(U"้ำสสน") == V{U"hello"});
+    OK(conversion_cycle(U"ะ้รห รห") == V{U"this is"});
+    // Numbers: other script, then year if it is one, then words.
+    OK(conversion_cycle(U"1,250") == (V{U"๑,๒๕๐", U"หนึ่งพันสองร้อยห้าสิบบาทถ้วน"}));
+    OK(conversion_cycle(U"2569") == (V{U"๒๕๖๙", U"2026", U"สองพันห้าร้อยหกสิบเก้าบาทถ้วน"}));
+    OK(conversion_cycle(U"๒๕๖๙") == (V{U"2569", U"2026", U"สองพันห้าร้อยหกสิบเก้าบาทถ้วน"}));
+    // Correct Thai with digits is not turned into gibberish.
+    OK(conversion_cycle(U"ข้อ 3 วรรค 2") == V{U"ข้อ ๓ วรรค ๒"});
+    OK(conversion_cycle(U"วันที่ ๑๑ พ.ศ. ๒๕๖๙") == (V{U"วันที่ 11 พ.ศ. 2569", U"วันที่ ๑๑ ค.ศ. 2026"}));
+    // Amount in words goes back to the number.
+    OK(conversion_cycle(U"หนึ่งพันสองร้อยห้าสิบบาทถ้วน") == V{U"1,250"});
+    // Correct text with nothing else to do: the fix is still offered.
+    OK(conversion_cycle(U"hello") == V{U"้ำสสน"});
+    OK(conversion_cycle(U"ไนพสก") == V{U"world"});
+    // Nothing to do.
+    OK(conversion_cycle(U"...").empty());
+    OK(conversion_cycle(U"").empty());
+    // Switched-off features are skipped.
+    OK(conversion_cycle(U"1,250", Numerals) == V{U"๑,๒๕๐"});
+    OK(conversion_cycle(U"1,250", BahtText) == V{U"หนึ่งพันสองร้อยห้าสิบบาทถ้วน"});
+    OK(conversion_cycle(U"l;ylfu", Numerals | Years | BahtText).empty());
+    OK(conversion_cycle(U"2569", FixLanguage | Years) == V{U"2026"});
+
+    OK(layout_fix_likely(U"l;ylfu"));
+    OK(layout_fix_likely(U"้ำสสน"));
+    OK(!layout_fix_likely(U"hello world"));
+    OK(!layout_fix_likely(U"สวัสดีครับ วันนี้อากาศดี"));
+    OK(!layout_fix_likely(U"น้ำ เพราะ สิทธิ์ ไม่ ก็ ฤๅ"));
+    OK(!layout_fix_likely(U"12345"));
 }
 
 static void test_caret_steps() {
@@ -203,51 +258,74 @@ static void test_caret_steps() {
 static void test_badge() {
     const Rect screen{0, 0, 1920, 1080};
     const Rect second{-1280, 200, 0, 1224};  // a monitor to the left, offset down
-    const int sizes[] = {32, 48, 64, 96, 128, 256};
+    // Visible cursor shapes relative to the pointer: arrow, hand, I-beam, at three sizes.
+    const Rect shapes[] = {{0, 0, 12, 19},   {-6, 0, 16, 22},   {-4, -9, 5, 10},
+                           {0, 0, 36, 57},   {-18, 0, 48, 66},  {-12, -27, 15, 30},
+                           {0, 0, 96, 152},  {-48, 0, 128, 176}, {-32, -72, 40, 80}};
+    const Corner corners[] = {Corner::BottomRight, Corner::BottomLeft, Corner::TopRight,
+                              Corner::TopLeft};
     int cases = 0;
     for (const Rect& sc : {screen, second}) {
-        for (int size : sizes) {
-            for (int hot : {0, size / 4, size / 2}) {       // arrow, hand, I-beam
-                for (int fx = 0; fx <= 10; ++fx) {
-                    for (int fy = 0; fy <= 10; ++fy) {
-                        BadgeInput in{};
-                        in.pointer = {sc.left + (sc.right - sc.left - 1) * fx / 10,
-                                      sc.top + (sc.bottom - sc.top - 1) * fy / 10};
-                        in.cursor_w = in.cursor_h = size;
-                        in.hot_x = in.hot_y = hot;
-                        in.badge_w = 30;
-                        in.badge_h = 20;
-                        in.gap = 3;
-                        in.screen = sc;
-                        Point p = place_badge(in);
-                        ++cases;
-                        bool inside = p.x >= sc.left && p.y >= sc.top &&
-                                      p.x + in.badge_w <= sc.right && p.y + in.badge_h <= sc.bottom;
-                        bool covers = in.pointer.x >= p.x && in.pointer.x < p.x + in.badge_w &&
-                                      in.pointer.y >= p.y && in.pointer.y < p.y + in.badge_h;
-                        if (!inside || covers) {
-                            std::printf("badge case: size %d hot %d at %d,%d -> %d,%d\n", size, hot,
-                                        in.pointer.x, in.pointer.y, p.x, p.y);
+        for (const Rect& shape : shapes) {
+            for (Corner corner : corners) {
+                for (int gap : {0, 2, 12}) {
+                    for (int fx = 0; fx <= 10; ++fx) {
+                        for (int fy = 0; fy <= 10; ++fy) {
+                            BadgeInput in{};
+                            in.pointer = {sc.left + (sc.right - sc.left - 1) * fx / 10,
+                                          sc.top + (sc.bottom - sc.top - 1) * fy / 10};
+                            in.cursor = shape;
+                            in.badge_w = 30;
+                            in.badge_h = 20;
+                            in.corner = corner;
+                            in.gap = gap;
+                            in.screen = sc;
+                            Point p = place_badge(in);
+                            ++cases;
+                            bool inside = p.x >= sc.left && p.y >= sc.top &&
+                                          p.x + in.badge_w <= sc.right &&
+                                          p.y + in.badge_h <= sc.bottom;
+                            bool covers = in.pointer.x >= p.x && in.pointer.x < p.x + in.badge_w &&
+                                          in.pointer.y >= p.y && in.pointer.y < p.y + in.badge_h;
+                            if (!inside || covers) {
+                                std::printf("badge case: at %d,%d -> %d,%d\n", in.pointer.x,
+                                            in.pointer.y, p.x, p.y);
+                            }
+                            OK(inside);
+                            OK(!covers);
                         }
-                        OK(inside);
-                        OK(!covers);
                     }
                 }
             }
         }
     }
-    OK(cases == 2 * 6 * 3 * 121);
+    OK(cases == 2 * 9 * 4 * 3 * 121);
 
-    // Away from the edges the badge sits below and to the right.
-    BadgeInput in{{500, 500}, 32, 32, 0, 0, 30, 20, 3, screen};
+    // Away from the edges the badge touches the chosen corner of the cursor.
+    BadgeInput in{{500, 500}, {0, 0, 12, 19}, 30, 20, Corner::BottomRight, 0, screen};
     Point p = place_badge(in);
-    OK(p.x > 500 && p.y > 500);
+    OK(p.x == 512 && p.y == 519);
+    in.corner = Corner::TopLeft;
+    p = place_badge(in);
+    OK(p.x == 470 && p.y == 480);
+    in.corner = Corner::BottomLeft;
+    p = place_badge(in);
+    OK(p.x == 470 && p.y == 519);
+    // The gap moves it away; a negative gap tucks it under the cursor.
+    in.corner = Corner::BottomRight;
+    in.gap = 5;
+    p = place_badge(in);
+    OK(p.x == 517 && p.y == 524);
+    in.gap = -4;
+    p = place_badge(in);
+    OK(p.x == 508 && p.y == 515);
     // A larger pointer pushes it further out.
-    BadgeInput big = in;
-    big.cursor_w = big.cursor_h = 128;
-    Point q = place_badge(big);
-    OK(q.x > p.x && q.y > p.y);
-    // At the bottom-right corner it flips to the top-left of the pointer.
+    in.gap = 0;
+    in.cursor = {0, 0, 48, 76};
+    p = place_badge(in);
+    OK(p.x == 548 && p.y == 576);
+    // At the bottom-right corner of the screen it flips to the top-left.
+    in.cursor = {0, 0, 12, 19};
     in.pointer = {1915, 1075};
     p = place_badge(in);
     OK(p.x + 30 <= 1915 && p.y + 20 <= 1075);
@@ -268,8 +346,18 @@ static void test_c_api() {
     s = salap_convert_years("2569", &n);
     OK(s && std::strcmp(s, "2026") == 0 && n == 1);
     salap_free(s);
-    OK(salap_smart_action("12") == 2);
-    OK(salap_smart_action(nullptr) == 0);
+    s = salap_parse_baht_text(to_utf8(U"ยี่สิบเอ็ดบาทถ้วน").c_str());
+    OK(s && std::strcmp(s, "21") == 0);
+    salap_free(s);
+    OK(salap_parse_baht_text("21") == nullptr);
+    salap_cycle* c = salap_conversion_cycle("1,250", 15);
+    OK(salap_cycle_count(c) == 2);
+    OK(salap_cycle_item(c, 0) && std::strcmp(salap_cycle_item(c, 0), to_utf8(U"๑,๒๕๐").c_str()) == 0);
+    OK(salap_cycle_item(c, 2) == nullptr);
+    salap_cycle_free(c);
+    c = salap_conversion_cycle(nullptr, 15);
+    OK(salap_cycle_count(c) == 0);
+    salap_cycle_free(c);
     salap_free(nullptr);
 }
 
@@ -279,7 +367,8 @@ int main() {
     test_numerals();
     test_baht_text();
     test_years();
-    test_smart_action();
+    test_parse_baht_text();
+    test_cycle();
     test_caret_steps();
     test_badge();
     test_c_api();

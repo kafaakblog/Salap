@@ -19,6 +19,7 @@
 #include <commctrl.h>
 #include <shellapi.h>
 #include <shlobj.h>
+#include <commdlg.h>
 
 #include <algorithm>
 #include <climits>
@@ -36,7 +37,7 @@ using std::min;
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 
-#define SALAP_VERSION L"0.1.0"
+#define SALAP_VERSION L"0.2.0"
 
 namespace {
 
@@ -45,102 +46,186 @@ namespace {
 // ---------------------------------------------------------------------------
 
 enum Str {
-    S_FIX, S_NUM, S_BAHT, S_YEAR, S_UNDO, S_SETTINGS, S_QUIT,
-    S_SETTINGS_TITLE, S_RUN_LOGIN, S_BADGE, S_EN_FIX, S_EN_NUM, S_KEEP_SEL,
-    S_SHORTCUTS, S_HK_SMART, S_HK_FIX, S_HK_NUM, S_HK_BAHT, S_HK_YEAR,
-    S_EXCLUDED, S_LANGUAGE, S_LANG_AUTO, S_SAVE, S_CANCEL, S_HK_FAIL,
+    S_CONVERT, S_FIX, S_NUM, S_YEAR, S_BAHT, S_UNDO, S_SETTINGS, S_QUIT,
+    S_SETTINGS_TITLE, S_SEC_GENERAL, S_RUN_LOGIN, S_LANGUAGE, S_LANG_AUTO,
+    S_SEC_CONVERT, S_SC_MAIN, S_SC_UNDO, S_TAP_TWICE, S_COMBO,
+    S_FEATURES, S_F_FIX, S_F_NUM, S_F_YEAR, S_F_BAHT, S_KEEP_SEL, S_EXCLUDED_BTN,
+    S_SEC_BADGE, S_BADGE, S_POSITION, S_POS_BR, S_POS_BL, S_POS_TR, S_POS_TL,
+    S_DISTANCE, S_COLOR_TH, S_COLOR_EN,
+    S_SAVE, S_CANCEL, S_HK_FAIL,
+    S_EX_TITLE, S_EX_INFO, S_EX_BUILTIN, S_EX_ADD_RUNNING, S_EX_BROWSE, S_EX_REMOVE,
+    S_EX_CLOSE, S_EX_NONE_RUNNING,
     S_COUNT
 };
 
-const wchar_t* const kEn[S_COUNT] = {
+const wchar_t* const kEn[] = {
+    L"Convert selected text",
     L"Fix wrong-language text",
     L"Switch Thai / Arabic numerals",
-    L"Amount in Thai words",
     L"Convert year (พ.ศ. ⇄ ค.ศ.)",
+    L"Amount in Thai words ⇄ number",
     L"Undo last conversion",
     L"Settings…",
     L"Quit Salap",
     L"Salap Settings",
+    L"General",
     L"Open Salap when I sign in",
-    L"Show the current language next to the pointer",
-    L"Fix wrong-language text",
-    L"Switch Thai / Arabic numerals",
-    L"Keep the converted text selected",
-    L"Shortcuts (select text first, then press)",
-    L"Smart: fix language or numerals",
-    L"Fix language only",
-    L"Numerals only",
-    L"Amount in Thai words",
-    L"Convert year",
-    L"Do not run in these apps (program names, separated by commas):",
     L"Language / ภาษา",
     L"Same as Windows",
+    L"Convert selected text",
+    L"Shortcut to convert",
+    L"Shortcut to undo",
+    L"Tap twice:",
+    L"Keys together:",
+    L"The shortcut does these. Press it again for the next one:",
+    L"Fix text typed in the wrong language",
+    L"Switch Thai / Arabic numerals",
+    L"Convert year (พ.ศ. ⇄ ค.ศ.)",
+    L"Amount in Thai words ⇄ number",
+    L"Keep the converted text selected",
+    L"Apps where Salap is off…",
+    L"Language badge",
+    L"Show the current language next to the pointer",
+    L"Position",
+    L"Below, right",
+    L"Below, left",
+    L"Above, right",
+    L"Above, left",
+    L"Distance from the pointer",
+    L"Color for Thai",
+    L"Color for English",
     L"Save",
     L"Cancel",
     L"These shortcuts are already used by Windows or another app, so Salap could not take them:\n\n",
+    L"Apps where Salap is off",
+    L"Salap does not convert text in these apps.",
+    L"  (built in)",
+    L"Add an open app…",
+    L"Browse…",
+    L"Remove",
+    L"Close",
+    L"(no other apps are open)",
 };
 
-const wchar_t* const kTh[S_COUNT] = {
+const wchar_t* const kTh[] = {
+    L"แปลงข้อความที่เลือก",
     L"แก้ข้อความที่พิมพ์ผิดภาษา",
     L"สลับเลขไทย / เลขอารบิก",
-    L"แปลงจำนวนเงินเป็นตัวอักษร",
     L"แปลงปี (พ.ศ. ⇄ ค.ศ.)",
+    L"จำนวนเงินเป็นตัวอักษร ⇄ ตัวเลข",
     L"ย้อนการแปลงล่าสุด",
     L"ตั้งค่า…",
     L"ออกจาก Salap",
     L"ตั้งค่า Salap",
+    L"ทั่วไป",
     L"เปิด Salap เมื่อลงชื่อเข้าใช้",
-    L"แสดงภาษาปัจจุบันข้างตัวชี้เมาส์",
-    L"แก้ข้อความที่พิมพ์ผิดภาษา",
-    L"สลับเลขไทย / เลขอารบิก",
-    L"เลือกข้อความที่แปลงแล้วค้างไว้",
-    L"ปุ่มลัด (เลือกข้อความก่อน แล้วกด)",
-    L"อัจฉริยะ: แก้ภาษาหรือสลับตัวเลข",
-    L"แก้ภาษาอย่างเดียว",
-    L"สลับตัวเลขอย่างเดียว",
-    L"แปลงจำนวนเงินเป็นตัวอักษร",
-    L"แปลงปี",
-    L"ไม่ทำงานในแอปเหล่านี้ (ชื่อโปรแกรม คั่นด้วยจุลภาค):",
     L"Language / ภาษา",
     L"ตามภาษาของ Windows",
+    L"แปลงข้อความที่เลือก",
+    L"ปุ่มลัดสำหรับแปลง",
+    L"ปุ่มลัดสำหรับย้อนกลับ",
+    L"กดสองครั้ง:",
+    L"กดพร้อมกัน:",
+    L"ปุ่มลัดจะทำสิ่งเหล่านี้ กดซ้ำเพื่อเปลี่ยนเป็นแบบถัดไป:",
+    L"แก้ข้อความที่พิมพ์ผิดภาษา",
+    L"สลับเลขไทย / เลขอารบิก",
+    L"แปลงปี (พ.ศ. ⇄ ค.ศ.)",
+    L"จำนวนเงินเป็นตัวอักษร ⇄ ตัวเลข",
+    L"เลือกข้อความที่แปลงแล้วค้างไว้",
+    L"แอปที่ไม่ให้ Salap ทำงาน…",
+    L"ป้ายบอกภาษา",
+    L"แสดงภาษาปัจจุบันข้างตัวชี้เมาส์",
+    L"ตำแหน่ง",
+    L"ล่างขวา",
+    L"ล่างซ้าย",
+    L"บนขวา",
+    L"บนซ้าย",
+    L"ระยะห่างจากตัวชี้เมาส์",
+    L"สีสำหรับภาษาไทย",
+    L"สีสำหรับภาษาอังกฤษ",
     L"บันทึก",
     L"ยกเลิก",
     L"ปุ่มลัดต่อไปนี้ถูก Windows หรือแอปอื่นใช้อยู่ Salap จึงใช้ไม่ได้:\n\n",
+    L"แอปที่ไม่ให้ Salap ทำงาน",
+    L"Salap จะไม่แปลงข้อความในแอปเหล่านี้",
+    L"  (มีมาให้)",
+    L"เพิ่มแอปที่เปิดอยู่…",
+    L"เลือกไฟล์…",
+    L"ลบ",
+    L"ปิด",
+    L"(ไม่มีแอปอื่นเปิดอยู่)",
 };
+
+static_assert(ARRAYSIZE(kEn) == S_COUNT, "English strings out of step with Str");
+static_assert(ARRAYSIZE(kTh) == S_COUNT, "Thai strings out of step with Str");
 
 // ---------------------------------------------------------------------------
 // Settings
 // ---------------------------------------------------------------------------
 
-enum HotkeyId { HK_SMART = 1, HK_FIX, HK_NUM, HK_BAHT, HK_YEAR, HK_COUNT };
+// A shortcut is either one modifier key tapped twice, or keys held together.
+enum { SC_DOUBLE = 1, SC_COMBO = 2 };
+struct Shortcut {
+    int type;
+    UINT mods;  // MOD_* flags, for SC_COMBO
+    UINT vk;    // the key; for SC_DOUBLE one of VK_CONTROL, VK_MENU, VK_SHIFT
+};
+
+struct Color {
+    BYTE r, g, b;
+};
+const Color kPalette[] = {
+    {37, 99, 235},   // blue
+    {22, 163, 74},   // green
+    {220, 38, 38},   // red
+    {234, 88, 12},   // orange
+    {147, 51, 234},  // purple
+    {219, 39, 119},  // pink
+    {55, 65, 81},    // dark grey
+};
+const int kPaletteCount = ARRAYSIZE(kPalette);
+
+// Terminals: Salap reads the selection with Ctrl+C, which stops a running
+// program there. These cannot be removed from the list.
+const wchar_t* const kBuiltInExcluded[] = {
+    L"WindowsTerminal.exe", L"cmd.exe", L"powershell.exe", L"pwsh.exe", L"conhost.exe",
+    L"OpenConsole.exe",     L"mintty.exe", L"putty.exe",   L"alacritty.exe", L"wezterm-gui.exe",
+};
 
 struct Settings {
     bool runAtLogin = false;
-    bool badge = true;
-    bool fixEnabled = true;
-    bool numEnabled = true;
-    bool keepSelected = true;
     int uiLang = 0;  // 0 = same as Windows, 1 = Thai, 2 = English
-    // Each shortcut is (MOD_* flags << 16) | virtual key; 0 means none.
-    UINT hotkey[HK_COUNT] = {0, (UINT)((MOD_CONTROL | MOD_ALT) << 16) | 'S', 0, 0, 0, 0};
-    std::wstring excluded =
-        L"WindowsTerminal.exe, cmd.exe, powershell.exe, pwsh.exe, conhost.exe, "
-        L"OpenConsole.exe, mintty.exe, putty.exe, alacritty.exe, wezterm-gui.exe";
+    Shortcut main = {SC_DOUBLE, 0, VK_CONTROL};
+    Shortcut undo = {SC_COMBO, MOD_CONTROL | MOD_ALT, 'Z'};
+    unsigned features = salap::AllFeatures;
+    bool keepSelected = true;
+    std::vector<std::wstring> excluded;  // added by the user
+    bool badge = true;
+    int badgeCorner = 0;  // salap::Corner
+    int badgeGap = 2;
+    int colorTh = 0;
+    int colorEn = 1;
 };
 
-const wchar_t* const kHotkeyIniName[HK_COUNT] = {L"", L"Smart", L"Fix", L"Numerals", L"BahtText", L"Year"};
 const wchar_t kRunKey[] = L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
 const wchar_t kRunValue[] = L"Salap";
+
+const UINT WM_TRAY = WM_APP + 1;
+const UINT WM_DOUBLETAP = WM_APP + 2;   // wParam: the modifier key that was tapped twice
+const UINT TM_SYNC_HOOKS = WM_APP + 10;  // to the hook thread; wParam: hooks wanted
+enum { HK_MAIN = 1, HK_UNDO = 2 };
 
 HINSTANCE g_inst;
 HWND g_main;       // hidden window that owns the tray icon, hotkeys and timer
 HWND g_badge;
 HWND g_settingsWnd;
+HWND g_excludedWnd;
 HWND g_lastForeground;  // last window of another app that had the focus
 Settings g_set;
 std::wstring g_iniPath;
 bool g_firstRun = false;
 UINT g_taskbarCreated;
+DWORD g_hookThreadId;
 
 const wchar_t* T(Str id) {
     bool thai;
@@ -178,6 +263,27 @@ void WriteRunAtLogin(bool on) {
     RegCloseKey(key);
 }
 
+std::vector<std::wstring> SplitList(const std::wstring& list) {
+    std::vector<std::wstring> out;
+    size_t i = 0;
+    while (i < list.size()) {
+        size_t j = list.find_first_of(L",;\r\n", i);
+        if (j == std::wstring::npos) j = list.size();
+        size_t a = i, b = j;
+        while (a < b && iswspace(list[a])) ++a;
+        while (b > a && iswspace(list[b - 1])) --b;
+        if (b > a) out.push_back(list.substr(a, b - a));
+        i = j + 1;
+    }
+    return out;
+}
+
+bool ValidShortcut(const Shortcut& s) {
+    if (s.type == SC_DOUBLE) return s.vk == VK_CONTROL || s.vk == VK_MENU || s.vk == VK_SHIFT;
+    if (s.type == SC_COMBO) return s.vk != 0 && (s.mods & (MOD_CONTROL | MOD_ALT | MOD_WIN)) != 0;
+    return false;
+}
+
 void LoadSettings() {
     wchar_t appdata[MAX_PATH];
     if (FAILED(SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, 0, appdata))) appdata[0] = 0;
@@ -187,18 +293,33 @@ void LoadSettings() {
     g_firstRun = GetFileAttributesW(g_iniPath.c_str()) == INVALID_FILE_ATTRIBUTES;
 
     const wchar_t* ini = g_iniPath.c_str();
-    Settings d;
-    g_set.badge = GetPrivateProfileIntW(L"General", L"Badge", d.badge, ini) != 0;
-    g_set.fixEnabled = GetPrivateProfileIntW(L"General", L"FixLanguage", d.fixEnabled, ini) != 0;
-    g_set.numEnabled = GetPrivateProfileIntW(L"General", L"Numerals", d.numEnabled, ini) != 0;
-    g_set.keepSelected = GetPrivateProfileIntW(L"General", L"KeepSelected", d.keepSelected, ini) != 0;
-    g_set.uiLang = (int)GetPrivateProfileIntW(L"General", L"Language", d.uiLang, ini);
-    if (g_set.uiLang < 0 || g_set.uiLang > 2) g_set.uiLang = 0;
-    for (int i = HK_SMART; i < HK_COUNT; ++i)
-        g_set.hotkey[i] = GetPrivateProfileIntW(L"Shortcuts", kHotkeyIniName[i], d.hotkey[i], ini);
-    wchar_t buf[2048];
-    GetPrivateProfileStringW(L"General", L"Excluded", d.excluded.c_str(), buf, ARRAYSIZE(buf), ini);
-    g_set.excluded = buf;
+    const Settings d;
+    auto getInt = [&](const wchar_t* sec, const wchar_t* key, int def) {
+        return (int)GetPrivateProfileIntW(sec, key, def, ini);
+    };
+    auto getShortcut = [&](const wchar_t* name, const Shortcut& def) {
+        std::wstring n(name);
+        Shortcut s;
+        s.type = getInt(L"Shortcuts", (n + L"Type").c_str(), def.type);
+        s.mods = (UINT)getInt(L"Shortcuts", (n + L"Mods").c_str(), (int)def.mods);
+        s.vk = (UINT)getInt(L"Shortcuts", (n + L"Key").c_str(), (int)def.vk);
+        return ValidShortcut(s) ? s : def;
+    };
+    auto inRange = [](int v, int lo, int hi, int def) { return v < lo || v > hi ? def : v; };
+
+    g_set.uiLang = inRange(getInt(L"General", L"Language", d.uiLang), 0, 2, 0);
+    g_set.main = getShortcut(L"Convert", d.main);
+    g_set.undo = getShortcut(L"Undo", d.undo);
+    g_set.features = (unsigned)getInt(L"Convert", L"Features", (int)d.features) & salap::AllFeatures;
+    g_set.keepSelected = getInt(L"Convert", L"KeepSelected", d.keepSelected) != 0;
+    wchar_t buf[4096];
+    GetPrivateProfileStringW(L"Convert", L"ExcludedApps", L"", buf, ARRAYSIZE(buf), ini);
+    g_set.excluded = SplitList(buf);
+    g_set.badge = getInt(L"Badge", L"Show", d.badge) != 0;
+    g_set.badgeCorner = inRange(getInt(L"Badge", L"Corner", d.badgeCorner), 0, 3, 0);
+    g_set.badgeGap = inRange(getInt(L"Badge", L"Gap", d.badgeGap + 100) - 100, -8, 30, d.badgeGap);
+    g_set.colorTh = inRange(getInt(L"Badge", L"ColorThai", d.colorTh), 0, kPaletteCount - 1, d.colorTh);
+    g_set.colorEn = inRange(getInt(L"Badge", L"ColorEnglish", d.colorEn), 0, kPaletteCount - 1, d.colorEn);
     g_set.runAtLogin = ReadRunAtLogin();
 }
 
@@ -214,16 +335,28 @@ void SaveSettings() {
             CloseHandle(f);
         }
     }
-    auto putInt = [&](const wchar_t* sec, const wchar_t* key, UINT v) {
+    auto putInt = [&](const wchar_t* sec, const wchar_t* key, int v) {
         WritePrivateProfileStringW(sec, key, std::to_wstring(v).c_str(), ini);
     };
-    putInt(L"General", L"Badge", g_set.badge);
-    putInt(L"General", L"FixLanguage", g_set.fixEnabled);
-    putInt(L"General", L"Numerals", g_set.numEnabled);
-    putInt(L"General", L"KeepSelected", g_set.keepSelected);
-    putInt(L"General", L"Language", (UINT)g_set.uiLang);
-    for (int i = HK_SMART; i < HK_COUNT; ++i) putInt(L"Shortcuts", kHotkeyIniName[i], g_set.hotkey[i]);
-    WritePrivateProfileStringW(L"General", L"Excluded", g_set.excluded.c_str(), ini);
+    auto putShortcut = [&](const wchar_t* name, const Shortcut& s) {
+        std::wstring n(name);
+        putInt(L"Shortcuts", (n + L"Type").c_str(), s.type);
+        putInt(L"Shortcuts", (n + L"Mods").c_str(), (int)s.mods);
+        putInt(L"Shortcuts", (n + L"Key").c_str(), (int)s.vk);
+    };
+    putInt(L"General", L"Language", g_set.uiLang);
+    putShortcut(L"Convert", g_set.main);
+    putShortcut(L"Undo", g_set.undo);
+    putInt(L"Convert", L"Features", (int)g_set.features);
+    putInt(L"Convert", L"KeepSelected", g_set.keepSelected);
+    std::wstring list;
+    for (const std::wstring& e : g_set.excluded) list += (list.empty() ? L"" : L", ") + e;
+    WritePrivateProfileStringW(L"Convert", L"ExcludedApps", list.c_str(), ini);
+    putInt(L"Badge", L"Show", g_set.badge);
+    putInt(L"Badge", L"Corner", g_set.badgeCorner);
+    putInt(L"Badge", L"Gap", g_set.badgeGap + 100);  // stored offset so it is never negative
+    putInt(L"Badge", L"ColorThai", g_set.colorTh);
+    putInt(L"Badge", L"ColorEnglish", g_set.colorEn);
     WriteRunAtLogin(g_set.runAtLogin);
 }
 
@@ -231,53 +364,143 @@ void SaveSettings() {
 // Shortcuts
 // ---------------------------------------------------------------------------
 
-std::wstring HotkeyText(UINT hk) {
-    if (!hk) return L"";
-    UINT mods = hk >> 16, vk = hk & 0xFFFF;
-    std::wstring s;
-    if (mods & MOD_CONTROL) s += L"Ctrl+";
-    if (mods & MOD_ALT) s += L"Alt+";
-    if (mods & MOD_SHIFT) s += L"Shift+";
-    if (mods & MOD_WIN) s += L"Win+";
-    if ((vk >= 'A' && vk <= 'Z') || (vk >= '0' && vk <= '9')) {
-        s += (wchar_t)vk;
-    } else if (vk >= VK_F1 && vk <= VK_F24) {
-        s += L"F" + std::to_wstring(vk - VK_F1 + 1);
-    } else if (vk == VK_SPACE) {
-        s += L"Space";
-    } else {
-        wchar_t name[64] = L"";
-        UINT sc = MapVirtualKeyW(vk, MAPVK_VK_TO_VSC);
-        if (!GetKeyNameTextW((LONG)(sc << 16), name, ARRAYSIZE(name)) || !name[0])
-            wsprintfW(name, L"0x%02X", vk);
-        s += name;
-    }
-    return s;
+std::wstring KeyName(UINT vk) {
+    if ((vk >= 'A' && vk <= 'Z') || (vk >= '0' && vk <= '9')) return std::wstring(1, (wchar_t)vk);
+    if (vk >= VK_F1 && vk <= VK_F24) return L"F" + std::to_wstring(vk - VK_F1 + 1);
+    if (vk == VK_SPACE) return L"Space";
+    if (vk == VK_OEM_3) return L"`";
+    if (vk == VK_CONTROL) return L"Ctrl";
+    if (vk == VK_MENU) return L"Alt";
+    if (vk == VK_SHIFT) return L"Shift";
+    wchar_t name[64];
+    wsprintfW(name, L"0x%02X", vk);
+    return name;
 }
 
-bool HotkeyWanted(int id) {
-    if (!g_set.hotkey[id]) return false;
-    if (id == HK_FIX) return g_set.fixEnabled;
-    if (id == HK_NUM) return g_set.numEnabled;
-    if (id == HK_SMART) return g_set.fixEnabled || g_set.numEnabled;
-    return true;
+std::wstring ShortcutText(const Shortcut& s) {
+    if (s.type == SC_DOUBLE) return KeyName(s.vk) + L" ×2";
+    std::wstring t;
+    if (s.mods & MOD_CONTROL) t += L"Ctrl+";
+    if (s.mods & MOD_ALT) t += L"Alt+";
+    if (s.mods & MOD_SHIFT) t += L"Shift+";
+    if (s.mods & MOD_WIN) t += L"Win+";
+    return t + KeyName(s.vk);
+}
+
+// Tells the hook thread whether anything needs to watch for double taps.
+void SyncHooks() {
+    bool want = !g_settingsWnd && (g_set.main.type == SC_DOUBLE || g_set.undo.type == SC_DOUBLE);
+    PostThreadMessageW(g_hookThreadId, TM_SYNC_HOOKS, want, 0);
 }
 
 void UnregisterHotkeys() {
-    for (int i = HK_SMART; i < HK_COUNT; ++i) UnregisterHotKey(g_main, i);
+    UnregisterHotKey(g_main, HK_MAIN);
+    UnregisterHotKey(g_main, HK_UNDO);
 }
 
 // Returns the shortcuts that could not be registered, one per line.
 std::wstring RegisterHotkeys() {
     UnregisterHotkeys();
     std::wstring failed;
-    for (int i = HK_SMART; i < HK_COUNT; ++i) {
-        if (!HotkeyWanted(i)) continue;
-        UINT hk = g_set.hotkey[i];
-        if (!RegisterHotKey(g_main, i, (hk >> 16) | MOD_NOREPEAT, hk & 0xFFFF))
-            failed += HotkeyText(hk) + L"\n";
-    }
+    auto reg = [&](int id, const Shortcut& s) {
+        if (s.type != SC_COMBO) return;
+        if (!RegisterHotKey(g_main, id, s.mods | MOD_NOREPEAT, s.vk)) failed += ShortcutText(s) + L"\n";
+    };
+    reg(HK_MAIN, g_set.main);
+    reg(HK_UNDO, g_set.undo);
+    SyncHooks();
     return failed;
+}
+
+// ---------------------------------------------------------------------------
+// Double-tap detection
+//
+// Low-level hooks must answer quickly or Windows drops them, and the main
+// thread sleeps while it converts text. So the hooks live on their own thread
+// that does nothing but watch for "modifier tapped twice" and tell the main
+// window. They are installed only while a double-tap shortcut is in use. No
+// key other than Ctrl, Alt and Shift is looked at beyond "it was not one of
+// those", and nothing is stored.
+// ---------------------------------------------------------------------------
+
+struct TapState {
+    UINT mod = 0;
+    int stage = 0;  // 0 idle, 1 first press, 2 first release, 3 second press, 4 held too long
+    DWORD time = 0;
+} g_tap;
+HHOOK g_kbHook, g_mouseHook;
+const DWORD kTapHoldMs = 300;  // a tap is shorter than this
+const DWORD kTapGapMs = 400;   // the second tap starts within this
+
+UINT ModifierOf(DWORD vk) {
+    switch (vk) {
+        case VK_CONTROL: case VK_LCONTROL: case VK_RCONTROL: return VK_CONTROL;
+        case VK_MENU: case VK_LMENU: case VK_RMENU: return VK_MENU;
+        case VK_SHIFT: case VK_LSHIFT: case VK_RSHIFT: return VK_SHIFT;
+        default: return 0;
+    }
+}
+
+LRESULT CALLBACK KeyboardHook(int code, WPARAM wp, LPARAM lp) {
+    if (code == HC_ACTION) {
+        const KBDLLHOOKSTRUCT* k = (const KBDLLHOOKSTRUCT*)lp;
+        if (!(k->flags & LLKHF_INJECTED)) {
+            const bool down = wp == WM_KEYDOWN || wp == WM_SYSKEYDOWN;
+            const UINT mod = ModifierOf(k->vkCode);
+            TapState& t = g_tap;
+            if (!mod) {
+                t.stage = 0;
+            } else if (down) {
+                if (t.stage == 0 || mod != t.mod) {
+                    t = {mod, 1, k->time};
+                } else if (t.stage == 2) {
+                    if (k->time - t.time <= kTapGapMs) t = {mod, 3, k->time};
+                    else t = {mod, 1, k->time};
+                } else if ((t.stage == 1 || t.stage == 3) && k->time - t.time > kTapHoldMs) {
+                    t.stage = 4;  // key repeat: it is being held, not tapped
+                }
+            } else {
+                if (mod != t.mod) {
+                    t.stage = 0;
+                } else if (t.stage == 1 && k->time - t.time <= kTapHoldMs) {
+                    t.stage = 2;
+                    t.time = k->time;
+                } else {
+                    if (t.stage == 3 && k->time - t.time <= kTapHoldMs)
+                        PostMessageW(g_main, WM_DOUBLETAP, mod, 0);
+                    t.stage = 0;
+                }
+            }
+        }
+    }
+    return CallNextHookEx(nullptr, code, wp, lp);
+}
+
+// Ctrl+click, twice, is not a double tap.
+LRESULT CALLBACK MouseHook(int code, WPARAM wp, LPARAM lp) {
+    if (code == HC_ACTION && wp != WM_MOUSEMOVE) g_tap.stage = 0;
+    return CallNextHookEx(nullptr, code, wp, lp);
+}
+
+DWORD WINAPI HookThread(LPVOID ready) {
+    MSG msg;
+    PeekMessageW(&msg, nullptr, WM_USER, WM_USER, PM_NOREMOVE);  // create the message queue
+    SetEvent((HANDLE)ready);
+    while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
+        if (msg.hwnd == nullptr && msg.message == TM_SYNC_HOOKS) {
+            if (msg.wParam && !g_kbHook) {
+                g_tap = TapState();
+                g_kbHook = SetWindowsHookExW(WH_KEYBOARD_LL, KeyboardHook, g_inst, 0);
+                g_mouseHook = SetWindowsHookExW(WH_MOUSE_LL, MouseHook, g_inst, 0);
+            } else if (!msg.wParam && g_kbHook) {
+                UnhookWindowsHookEx(g_kbHook);
+                if (g_mouseHook) UnhookWindowsHookEx(g_mouseHook);
+                g_kbHook = g_mouseHook = nullptr;
+            }
+        }
+        DispatchMessageW(&msg);
+    }
+    return 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -447,11 +670,6 @@ bool CopySelection(std::wstring& out) {
 // Which app is in front, and is it excluded
 // ---------------------------------------------------------------------------
 
-std::wstring Lower(std::wstring s) {
-    if (!s.empty()) CharLowerBuffW(&s[0], (DWORD)s.size());
-    return s;
-}
-
 std::wstring ProcessName(HWND w) {
     DWORD pid = 0;
     GetWindowThreadProcessId(w, &pid);
@@ -467,28 +685,29 @@ std::wstring ProcessName(HWND w) {
         }
         CloseHandle(p);
     }
-    return Lower(name);
+    return name;
+}
+
+bool IsBuiltInExcluded(const std::wstring& name) {
+    for (const wchar_t* b : kBuiltInExcluded)
+        if (!lstrcmpiW(b, name.c_str())) return true;
+    return false;
+}
+
+bool InList(const std::vector<std::wstring>& list, const std::wstring& name) {
+    for (const std::wstring& e : list)
+        if (!lstrcmpiW(e.c_str(), name.c_str())) return true;
+    return false;
 }
 
 bool IsExcluded(HWND w) {
     if (!w) return true;
     wchar_t cls[64] = L"";
     GetClassNameW(w, cls, ARRAYSIZE(cls));
-    if (!lstrcmpW(cls, L"ConsoleWindowClass")) return true;  // Ctrl+C would interrupt a program
+    if (!lstrcmpW(cls, L"ConsoleWindowClass")) return true;
     std::wstring name = ProcessName(w);
     if (name.empty()) return false;
-    std::wstring list = Lower(g_set.excluded);
-    size_t i = 0;
-    while (i < list.size()) {
-        size_t j = list.find_first_of(L",;\r\n", i);
-        if (j == std::wstring::npos) j = list.size();
-        size_t a = i, b = j;
-        while (a < b && iswspace(list[a])) ++a;
-        while (b > a && iswspace(list[b - 1])) --b;
-        if (b > a && list.compare(a, b - a, name) == 0) return true;
-        i = j + 1;
-    }
-    return false;
+    return IsBuiltInExcluded(name) || InList(g_set.excluded, name);
 }
 
 void CALLBACK ForegroundChanged(HWINEVENTHOOK, DWORD, HWND w, LONG, LONG, DWORD, DWORD) {
@@ -510,27 +729,20 @@ void CALLBACK ForegroundChanged(HWINEVENTHOOK, DWORD, HWND w, LONG, LONG, DWORD,
 // Converting the selection
 // ---------------------------------------------------------------------------
 
-enum Kind { K_SMART, K_FIX, K_NUM, K_BAHT, K_YEAR, K_UNDO };
+enum Kind { K_CYCLE, K_FIX, K_NUM, K_BAHT, K_YEAR, K_UNDO };
 
 struct LastConversion {
     bool valid = false;
-    bool smart = false;
+    bool cycle = false;
     std::wstring original;  // what the user had selected
     std::wstring result;    // what Salap replaced it with
-    salap::Action first = salap::Action::None;
-    int stage = 0;          // smart cycle: 0 first guess, 1 the other one, 2 original
+    size_t index = 0;       // position in the cycle
     ULONGLONG time = 0;
     HWND window = nullptr;
 };
 LastConversion g_last;
 
 void Fail() { MessageBeep(MB_ICONWARNING); }
-
-std::u32string Apply(salap::Action a, const std::u32string& text) {
-    if (a == salap::Action::FixLanguage && g_set.fixEnabled) return salap::convert_layout(text);
-    if (a == salap::Action::Numerals && g_set.numEnabled) return salap::convert_numerals(text);
-    return text;
-}
 
 std::wstring W(const std::u32string& s) {
     std::u16string u = salap::to_utf16(s);
@@ -541,9 +753,24 @@ std::u32string U(const std::wstring& s) {
     return salap::from_utf16(std::u16string(s.begin(), s.end()));
 }
 
+// Replaces the selection with `text` and, if wanted, selects it again.
+bool PasteOver(const std::wstring& text) {
+    if (!WriteClipboardText(text)) return false;
+    SendCtrl('V');
+    Sleep(250);  // the app reads the clipboard after it sees the keys
+    if (g_set.keepSelected) {
+        size_t steps = salap::caret_steps(U(text));
+        if (steps > 0 && steps <= 400) {
+            SendShiftLeft(steps);
+            Sleep(30);
+        }
+    }
+    return true;
+}
+
 void RunAction(Kind kind, bool fromMenu) {
     HWND target = fromMenu ? g_lastForeground : GetForegroundWindow();
-    if (!target || !IsWindow(target) || IsExcluded(target)) return Fail();
+    if (!target || !IsWindow(target) || IsExcluded(target)) return;
     if (fromMenu) {
         SetForegroundWindow(target);
         Sleep(150);
@@ -551,11 +778,30 @@ void RunAction(Kind kind, bool fromMenu) {
     }
     WaitForModifiersUp();
 
+    const ULONGLONG now = GetTickCount64();
+    const bool recent = g_last.valid && g_last.window == target && now - g_last.time < 30000;
+
     std::vector<ClipItem> backup;
     BackupClipboard(backup);
-
     std::wstring sel;
-    if (!CopySelection(sel)) return Fail();  // clipboard untouched: nothing was selected
+    const bool copied = CopySelection(sel);
+    const bool again = copied && recent && sel == g_last.result;
+
+    if (kind == K_UNDO) {
+        if (again) {
+            PasteOver(g_last.original);
+            RestoreClipboard(backup);
+        } else {
+            // The converted text is no longer selected; fall back on the app's own undo.
+            if (copied) RestoreClipboard(backup);
+            if (!recent) return;
+            SendCtrl('Z');
+        }
+        g_last.valid = false;
+        return;
+    }
+
+    if (!copied) return;  // nothing selected; the clipboard was not touched
     auto giveUp = [&]() {
         RestoreClipboard(backup);
         Fail();
@@ -565,87 +811,53 @@ void RunAction(Kind kind, bool fromMenu) {
     if (sel.empty() || sel.size() > 5000 || sel.back() == L'\n' || sel.back() == L'\r')
         return giveUp();
 
-    const bool again = g_last.valid && g_last.window == target && sel == g_last.result &&
-                       GetTickCount64() - g_last.time < 30000;
-    std::wstring original = again ? g_last.original : sel;
-    std::u32string src = U(original);
+    std::wstring original = sel;
     std::wstring out;
     LastConversion next;
-    next.smart = kind == K_SMART;
 
     switch (kind) {
-        case K_SMART: {
-            salap::Action first;
-            int stage;
-            if (again && g_last.smart) {
-                first = g_last.first;
-                stage = (g_last.stage + 1) % 3;
-            } else {
-                first = salap::smart_action(src);
-                if (first == salap::Action::FixLanguage && !g_set.fixEnabled) first = salap::Action::Numerals;
-                else if (first == salap::Action::Numerals && !g_set.numEnabled) first = salap::Action::FixLanguage;
-                stage = 0;
+        case K_CYCLE: {
+            const bool continuing = again && g_last.cycle;
+            if (continuing) original = g_last.original;
+            std::vector<std::u32string> steps = salap::conversion_cycle(U(original), g_set.features);
+            if (steps.empty()) return giveUp();
+            steps.push_back(U(original));  // the last press brings the original back
+            size_t idx = continuing ? (g_last.index + 1) % steps.size() : 0;
+            out = W(steps[idx]);
+            if (out == sel) {
+                idx = (idx + 1) % steps.size();
+                out = W(steps[idx]);
             }
-            // Walk the cycle until something differs from what is selected now.
-            bool found = false;
-            for (int tries = 0; tries < 3 && !found; ++tries, stage = (stage + 1) % 3) {
-                std::u32string cand = stage == 0   ? Apply(first, src)
-                                      : stage == 1 ? Apply(salap::alternate_action(first), src)
-                                                   : src;
-                std::wstring w = W(cand);
-                if (w != sel) {
-                    out = w;
-                    next.stage = stage;
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) return giveUp();
-            next.first = first;
+            next.cycle = true;
+            next.index = idx;
             break;
         }
         case K_FIX:
             out = W(salap::convert_layout(U(sel)));
-            original = sel;
             break;
         case K_NUM:
             out = W(salap::convert_numerals(U(sel)));
-            original = sel;
             break;
         case K_BAHT: {
-            std::u32string words;
-            if (!salap::baht_text(U(sel), words)) return giveUp();
-            out = W(words);
-            original = sel;
+            std::u32string r;
+            if (!salap::parse_baht_text(U(sel), r) && !salap::baht_text(U(sel), r)) return giveUp();
+            out = W(r);
             break;
         }
         case K_YEAR: {
             int n = 0;
             out = W(salap::convert_years(U(sel), &n));
             if (!n) return giveUp();
-            original = sel;
             break;
         }
         case K_UNDO:
-            if (!again) return giveUp();
-            out = g_last.original;
             break;
     }
     if (out == sel) return giveUp();
-
-    if (!WriteClipboardText(out)) return giveUp();
-    SendCtrl('V');
-    Sleep(250);  // the app reads the clipboard after it sees the keys
-    if (g_set.keepSelected) {
-        size_t steps = salap::caret_steps(U(out));
-        if (steps > 0 && steps <= 400) {
-            SendShiftLeft(steps);
-            Sleep(30);
-        }
-    }
+    if (!PasteOver(out)) return giveUp();
     RestoreClipboard(backup);
 
-    next.valid = kind != K_UNDO;
+    next.valid = true;
     next.original = original;
     next.result = out;
     next.time = GetTickCount64();
@@ -703,13 +915,13 @@ HICON MakeTrayIcon() {
 }
 
 struct BadgeState {
-    std::wstring code;      // what is drawn now
+    std::wstring code;      // what is drawn now; empty forces a redraw
     int w = 0, h = 0;
     POINT pos = {LONG_MIN, LONG_MIN};
     bool visible = false;
-    HCURSOR cursor = nullptr;  // cursor the cached metrics belong to
-    int cw = 32, ch = 32, hx = 0, hy = 0;
-    int baseSize = 32;         // Windows "mouse pointer size" setting
+    HCURSOR cursor = nullptr;      // cursor the cached shape belongs to
+    salap::Rect shape = {0, 0, 12, 19};  // visible part of the cursor, relative to the pointer
+    int baseSize = 32;             // Windows "mouse pointer size" setting
     int tick = 0;
 } g_b;
 
@@ -722,32 +934,84 @@ void ReadPointerSize() {
     g_b.cursor = nullptr;  // re-measure
 }
 
-// Size and hotspot of the cursor as it appears on screen.
+bool ReadPixels(HBITMAP bmp, int w, int h, std::vector<DWORD>& px) {
+    BITMAPINFO bi = {};
+    bi.bmiHeader.biSize = sizeof(bi.bmiHeader);
+    bi.bmiHeader.biWidth = w;
+    bi.bmiHeader.biHeight = -h;  // top-down
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+    px.assign((size_t)w * h, 0);
+    HDC dc = GetDC(nullptr);
+    int got = GetDIBits(dc, bmp, 0, (UINT)h, px.data(), &bi, DIB_RGB_COLORS);
+    ReleaseDC(nullptr, dc);
+    return got == h;
+}
+
+// Finds the part of the cursor image that is actually drawn, so the badge can
+// sit right next to it whatever the cursor's shape or size.
 void MeasureCursor(HCURSOR cur) {
     if (cur == g_b.cursor) return;
     g_b.cursor = cur;
+
     int w = 32, h = 32, hx = 0, hy = 0;
+    int l = 0, t = 0, r = 11, b = 18;  // a plain arrow, if the image cannot be read
     ICONINFO ii;
     if (cur && GetIconInfo(cur, &ii)) {
         BITMAP bm = {};
-        if (GetObjectW(ii.hbmColor ? ii.hbmColor : ii.hbmMask, sizeof(bm), &bm)) {
+        if (GetObjectW(ii.hbmColor ? ii.hbmColor : ii.hbmMask, sizeof(bm), &bm) && bm.bmWidth > 0 &&
+            bm.bmWidth <= 1024 && bm.bmHeight > 0 && bm.bmHeight <= 2048) {
             w = bm.bmWidth;
             h = ii.hbmColor ? bm.bmHeight : bm.bmHeight / 2;  // a mask holds two images
+            if (h < 1) h = 1;
+            hx = (int)ii.xHotspot;
+            hy = (int)ii.yHotspot;
+
+            std::vector<DWORD> color, mask;
+            std::vector<bool> drawn;
+            const size_t n = (size_t)w * h;
+            if (ii.hbmColor && ReadPixels(ii.hbmColor, w, h, color)) {
+                bool hasAlpha = false;
+                for (DWORD p : color)
+                    if (p >> 24) hasAlpha = true;
+                if (hasAlpha) {
+                    drawn.resize(n);
+                    for (size_t k = 0; k < n; ++k) drawn[k] = (color[k] >> 24) > 32;
+                } else if (ii.hbmMask && ReadPixels(ii.hbmMask, w, h, mask)) {
+                    drawn.resize(n);
+                    for (size_t k = 0; k < n; ++k) drawn[k] = (mask[k] & 0xFFFFFF) == 0;
+                }
+            } else if (!ii.hbmColor && ii.hbmMask && ReadPixels(ii.hbmMask, w, h * 2, mask)) {
+                // Black-and-white cursor: drawn where the top half is black
+                // or the bottom half is white (which inverts the screen).
+                drawn.resize(n);
+                for (size_t k = 0; k < n; ++k)
+                    drawn[k] = (mask[k] & 0xFFFFFF) == 0 || (mask[n + k] & 0xFFFFFF) != 0;
+            }
+            int bl = w, bt = h, br = -1, bb = -1;
+            for (size_t k = 0; k < drawn.size(); ++k) {
+                if (!drawn[k]) continue;
+                int x = (int)(k % w), y = (int)(k / w);
+                if (x < bl) bl = x;
+                if (x > br) br = x;
+                if (y < bt) bt = y;
+                if (y > bb) bb = y;
+            }
+            if (br >= bl && bb >= bt) {
+                l = bl; t = bt; r = br; b = bb;
+            } else {
+                l = 0; t = 0; r = w - 1; b = h - 1;
+            }
         }
-        hx = (int)ii.xHotspot;
-        hy = (int)ii.yHotspot;
         if (ii.hbmColor) DeleteObject(ii.hbmColor);
         if (ii.hbmMask) DeleteObject(ii.hbmMask);
     }
-    if (w < 1) w = 32;
-    if (h < 1) h = 32;
     // The enlarged pointer from Settings > Accessibility is drawn bigger
     // than the cursor's own image; scale up to that size if it is larger.
     int shown = max(w, MulDiv(g_b.baseSize, g_dpi, 96));
-    g_b.cw = shown;
-    g_b.ch = MulDiv(h, shown, w);
-    g_b.hx = MulDiv(hx, shown, w);
-    g_b.hy = MulDiv(hy, shown, w);
+    g_b.shape = {MulDiv(l - hx, shown, w), MulDiv(t - hy, shown, w), MulDiv(r + 1 - hx, shown, w),
+                 MulDiv(b + 1 - hy, shown, w)};
 }
 
 std::wstring CurrentLanguageCode(LANGID* langOut) {
@@ -774,10 +1038,10 @@ std::wstring CurrentLanguageCode(LANGID* langOut) {
 
 void RedrawBadge(const std::wstring& code, LANGID lang) {
     int w = Dp(28), h = Dp(18);
-    Gdiplus::Color color = PRIMARYLANGID(lang) == LANG_THAI      ? Gdiplus::Color(235, 37, 99, 235)
-                           : PRIMARYLANGID(lang) == LANG_ENGLISH ? Gdiplus::Color(235, 22, 163, 74)
-                                                                 : Gdiplus::Color(235, 75, 85, 99);
-    Gdiplus::Bitmap* bmp = DrawTile(w, h, color, code.c_str(), (float)Dp(12), L"Segoe UI");
+    Color c = PRIMARYLANGID(lang) == LANG_THAI      ? kPalette[g_set.colorTh]
+              : PRIMARYLANGID(lang) == LANG_ENGLISH ? kPalette[g_set.colorEn]
+                                                    : Color{75, 85, 99};
+    Gdiplus::Bitmap* bmp = DrawTile(w, h, Gdiplus::Color(235, c.r, c.g, c.b), code.c_str(), (float)Dp(12), L"Segoe UI");
     HBITMAP hbm = nullptr;
     bmp->GetHBITMAP(Gdiplus::Color(0, 0, 0, 0), &hbm);
     delete bmp;
@@ -827,13 +1091,11 @@ void UpdateBadge() {
 
     salap::BadgeInput in = {};
     in.pointer = {ci.ptScreenPos.x, ci.ptScreenPos.y};
-    in.cursor_w = g_b.cw;
-    in.cursor_h = g_b.ch;
-    in.hot_x = g_b.hx;
-    in.hot_y = g_b.hy;
+    in.cursor = g_b.shape;
     in.badge_w = g_b.w;
     in.badge_h = g_b.h;
-    in.gap = Dp(3);
+    in.corner = (salap::Corner)g_set.badgeCorner;
+    in.gap = Dp(g_set.badgeGap);
     in.screen = {mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right, mi.rcMonitor.bottom};
     salap::Point p = salap::place_badge(in);
 
@@ -849,8 +1111,7 @@ void UpdateBadge() {
 // Tray icon and menu
 // ---------------------------------------------------------------------------
 
-const UINT WM_TRAY = WM_APP + 1;
-enum MenuId { M_FIX = 1, M_NUM, M_BAHT, M_YEAR, M_UNDO, M_SETTINGS, M_QUIT };
+enum MenuId { M_CYCLE = 1, M_FIX, M_NUM, M_YEAR, M_BAHT, M_UNDO, M_SETTINGS, M_QUIT };
 
 HICON g_trayIcon;
 
@@ -878,19 +1139,22 @@ void OpenSettings();
 
 void ShowMenu() {
     HMENU m = CreatePopupMenu();
-    auto item = [&](UINT id, Str label, int hk, bool enabled) {
+    auto item = [&](UINT id, Str label, const Shortcut* sc, bool enabled) {
         std::wstring s = T(label);
-        if (hk && g_set.hotkey[hk] && HotkeyWanted(hk)) s += L"\t" + HotkeyText(g_set.hotkey[hk]);
+        if (sc) s += L"\t" + ShortcutText(*sc);
         AppendMenuW(m, MF_STRING | (enabled ? 0 : MF_GRAYED), id, s.c_str());
     };
-    item(M_FIX, S_FIX, g_set.hotkey[HK_FIX] ? HK_FIX : HK_SMART, g_set.fixEnabled);
-    item(M_NUM, S_NUM, g_set.hotkey[HK_NUM] ? HK_NUM : 0, g_set.numEnabled);
-    item(M_BAHT, S_BAHT, HK_BAHT, true);
-    item(M_YEAR, S_YEAR, HK_YEAR, true);
-    item(M_UNDO, S_UNDO, 0, g_last.valid);
+    item(M_CYCLE, S_CONVERT, &g_set.main, g_set.features != 0);
     AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
-    item(M_SETTINGS, S_SETTINGS, 0, true);
-    item(M_QUIT, S_QUIT, 0, true);
+    item(M_FIX, S_FIX, nullptr, true);
+    item(M_NUM, S_NUM, nullptr, true);
+    item(M_YEAR, S_YEAR, nullptr, true);
+    item(M_BAHT, S_BAHT, nullptr, true);
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    item(M_UNDO, S_UNDO, &g_set.undo, g_last.valid);
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    item(M_SETTINGS, S_SETTINGS, nullptr, true);
+    item(M_QUIT, S_QUIT, nullptr, true);
 
     POINT pt;
     GetCursorPos(&pt);
@@ -900,10 +1164,11 @@ void ShowMenu() {
     PostMessageW(g_main, WM_NULL, 0, 0);
 
     switch (cmd) {
+        case M_CYCLE: RunAction(K_CYCLE, true); break;
         case M_FIX: RunAction(K_FIX, true); break;
         case M_NUM: RunAction(K_NUM, true); break;
-        case M_BAHT: RunAction(K_BAHT, true); break;
         case M_YEAR: RunAction(K_YEAR, true); break;
+        case M_BAHT: RunAction(K_BAHT, true); break;
         case M_UNDO: RunAction(K_UNDO, true); break;
         case M_SETTINGS: OpenSettings(); break;
         case M_QUIT: DestroyWindow(g_main); break;
@@ -915,133 +1180,287 @@ void ShowMenu() {
 // ---------------------------------------------------------------------------
 
 enum CtrlId {
-    C_RUN = 100, C_BADGE, C_ENFIX, C_ENNUM, C_KEEP,
-    C_HK_FIRST,  // + HotkeyId
-    C_EXCLUDED = 120, C_LANG, C_SAVE, C_CANCEL
+    C_RUN = 100, C_LANG,
+    C_MAIN,       // six controls: tap radio, tap key, combo radio, modifier, modifier, key
+    C_UNDO = C_MAIN + 6,
+    C_F_FIX = C_UNDO + 6, C_F_NUM, C_F_YEAR, C_F_BAHT, C_KEEP, C_EXCLUDED,
+    C_BADGE, C_POS, C_GAP, C_SAVE, C_CANCEL,
+    C_SW_TH = 200,  // + palette index
+    C_SW_EN = 220,
+    C_EX_LIST = 300, C_EX_ADD, C_EX_BROWSE, C_EX_REMOVE, C_EX_CLOSE
 };
 
-HFONT g_font;
+HFONT g_font, g_fontBold;
+Settings g_before;                         // to put back if Settings is cancelled
+std::vector<std::wstring> g_pendingExcluded;  // edited by the excluded-apps window
 
-WORD ToHotkeyCtl(UINT hk) {
-    UINT mods = hk >> 16;
-    BYTE f = 0;
-    if (mods & MOD_SHIFT) f |= HOTKEYF_SHIFT;
-    if (mods & MOD_CONTROL) f |= HOTKEYF_CONTROL;
-    if (mods & MOD_ALT) f |= HOTKEYF_ALT;
-    return MAKEWORD(hk & 0xFF, f);
-}
+struct NamedValue {
+    const wchar_t* name;
+    UINT value;
+};
+const NamedValue kTapKeys[] = {{L"Ctrl", VK_CONTROL}, {L"Alt", VK_MENU}, {L"Shift", VK_SHIFT}};
+const NamedValue kMod1[] = {{L"Ctrl", MOD_CONTROL}, {L"Alt", MOD_ALT}, {L"Win", MOD_WIN}};
+// Always two modifiers: Ctrl+S or Alt+F alone would take over shortcuts every app uses.
+const NamedValue kMod2[] = {{L"Shift", MOD_SHIFT}, {L"Alt", MOD_ALT}, {L"Ctrl", MOD_CONTROL}};
 
-UINT FromHotkeyCtl(WORD v) {
-    BYTE vk = LOBYTE(v), f = HIBYTE(v);
-    if (!vk) return 0;
-    UINT mods = 0;
-    if (f & HOTKEYF_SHIFT) mods |= MOD_SHIFT;
-    if (f & HOTKEYF_CONTROL) mods |= MOD_CONTROL;
-    if (f & HOTKEYF_ALT) mods |= MOD_ALT;
-    if (!mods) return 0;  // a bare key would swallow ordinary typing
-    return (mods << 16) | vk;
+std::vector<UINT> ComboKeys() {
+    std::vector<UINT> v;
+    for (UINT k = 'A'; k <= 'Z'; ++k) v.push_back(k);
+    for (UINT k = '0'; k <= '9'; ++k) v.push_back(k);
+    for (UINT k = VK_F1; k <= VK_F12; ++k) v.push_back(k);
+    v.push_back(VK_SPACE);
+    v.push_back(VK_OEM_3);
+    return v;
 }
 
 HWND Ctl(HWND parent, const wchar_t* cls, const wchar_t* text, DWORD style, DWORD exStyle, int x,
-         int y, int w, int h, int id) {
+         int y, int w, int h, int id, HFONT font = nullptr) {
     HWND c = CreateWindowExW(exStyle, cls, text, WS_CHILD | WS_VISIBLE | style, Dp(x), Dp(y), Dp(w),
                              Dp(h), parent, (HMENU)(INT_PTR)id, g_inst, nullptr);
-    SendMessageW(c, WM_SETFONT, (WPARAM)g_font, TRUE);
+    SendMessageW(c, WM_SETFONT, (WPARAM)(font ? font : g_font), TRUE);
     return c;
 }
 
+template <size_t N>
+HWND Combo(HWND w, int x, int y, int width, int id, const NamedValue (&items)[N], UINT selected) {
+    HWND c = Ctl(w, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, 0, x, y, width, 300, id);
+    int sel = 0;
+    for (size_t i = 0; i < N; ++i) {
+        SendMessageW(c, CB_ADDSTRING, 0, (LPARAM)items[i].name);
+        if (items[i].value == selected) sel = (int)i;
+    }
+    SendMessageW(c, CB_SETCURSEL, sel, 0);
+    return c;
+}
+
+// Two rows: ( ) Tap twice: [Ctrl]     ( ) Keys together: [Ctrl] + [Shift] + [S]
+void BuildShortcut(HWND w, int x, int& y, Str label, int base, const Shortcut& sc) {
+    Ctl(w, L"STATIC", T(label), 0, 0, x, y, 380, 20, -1);
+    y += 24;
+    HWND r1 = Ctl(w, L"BUTTON", T(S_TAP_TWICE), BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 0, x + 14, y, 140, 24, base);
+    Combo(w, x + 160, y, 76, base + 1, kTapKeys, sc.type == SC_DOUBLE ? sc.vk : (UINT)VK_CONTROL);
+    y += 30;
+    HWND r2 = Ctl(w, L"BUTTON", T(S_COMBO), BS_AUTORADIOBUTTON, 0, x + 14, y, 140, 24, base + 2);
+    const bool combo = sc.type == SC_COMBO;
+    UINT m1 = MOD_CONTROL, m2 = MOD_ALT;
+    if (combo) {
+        // Split the modifier set over the two boxes.
+        m1 = (sc.mods & MOD_CONTROL) ? MOD_CONTROL : (sc.mods & MOD_ALT) ? MOD_ALT : MOD_WIN;
+        UINT rest = sc.mods & ~m1;
+        m2 = (rest & MOD_SHIFT) ? MOD_SHIFT : (rest & MOD_ALT) ? MOD_ALT : (rest & MOD_CONTROL) ? MOD_CONTROL : 0;
+    }
+    Combo(w, x + 160, y, 76, base + 3, kMod1, m1);
+    Ctl(w, L"STATIC", L"+", SS_CENTER, 0, x + 238, y + 3, 14, 20, -1);
+    Combo(w, x + 254, y, 76, base + 4, kMod2, m2);
+    Ctl(w, L"STATIC", L"+", SS_CENTER, 0, x + 332, y + 3, 14, 20, -1);
+    HWND key = Ctl(w, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, 0, x + 348, y, 62, 300, base + 5);
+    std::vector<UINT> keys = ComboKeys();
+    int sel = combo ? -1 : 18;  // S
+    for (size_t i = 0; i < keys.size(); ++i) {
+        SendMessageW(key, CB_ADDSTRING, 0, (LPARAM)KeyName(keys[i]).c_str());
+        if (combo && keys[i] == sc.vk) sel = (int)i;
+    }
+    SendMessageW(key, CB_SETCURSEL, sel < 0 ? 0 : sel, 0);
+    SendMessageW(combo ? r2 : r1, BM_SETCHECK, BST_CHECKED, 0);
+    y += 36;
+}
+
+Shortcut ReadShortcut(HWND w, int base) {
+    auto sel = [&](int id) { return (int)SendDlgItemMessageW(w, id, CB_GETCURSEL, 0, 0); };
+    Shortcut s = {};
+    if (IsDlgButtonChecked(w, base) == BST_CHECKED) {
+        s.type = SC_DOUBLE;
+        int i = sel(base + 1);
+        s.vk = kTapKeys[i < 0 || i >= (int)ARRAYSIZE(kTapKeys) ? 0 : i].value;
+    } else {
+        s.type = SC_COMBO;
+        int a = sel(base + 3), b = sel(base + 4), k = sel(base + 5);
+        UINT m1 = kMod1[a < 0 || a >= (int)ARRAYSIZE(kMod1) ? 0 : a].value;
+        UINT m2 = kMod2[b < 0 || b >= (int)ARRAYSIZE(kMod2) ? 0 : b].value;
+        if (m2 == m1) m2 = m1 == MOD_ALT ? MOD_SHIFT : MOD_ALT;  // the same key twice is not a combination
+        s.mods = m1 | m2;
+        std::vector<UINT> keys = ComboKeys();
+        s.vk = keys[k < 0 || k >= (int)keys.size() ? 0 : k];
+    }
+    return s;
+}
+
 void BuildSettings(HWND w) {
-    const int L = 20, W_ = 420;
+    const int L = 20, LW = 420;        // left column
+    const int R = L + LW + 30, RW = 300;  // right column
     int y = 16;
-    auto check = [&](int id, Str label, bool on) {
-        HWND c = Ctl(w, L"BUTTON", T(label), BS_AUTOCHECKBOX | WS_TABSTOP, 0, L, y, W_, 22, id);
+    auto header = [&](int x, Str label) {
+        Ctl(w, L"STATIC", T(label), 0, 0, x, y, 300, 20, -1, g_fontBold);
+        y += 26;
+    };
+    auto check = [&](int x, int width, int id, Str label, bool on, DWORD extra = 0) {
+        HWND c = Ctl(w, L"BUTTON", T(label), BS_AUTOCHECKBOX | WS_TABSTOP | extra, 0, x, y, width, 22, id);
         SendMessageW(c, BM_SETCHECK, on ? BST_CHECKED : BST_UNCHECKED, 0);
         y += 26;
     };
-    check(C_RUN, S_RUN_LOGIN, g_set.runAtLogin);
-    check(C_BADGE, S_BADGE, g_set.badge);
-    check(C_ENFIX, S_EN_FIX, g_set.fixEnabled);
-    check(C_ENNUM, S_EN_NUM, g_set.numEnabled);
-    check(C_KEEP, S_KEEP_SEL, g_set.keepSelected);
 
-    y += 8;
-    Ctl(w, L"STATIC", T(S_SHORTCUTS), 0, 0, L, y, W_, 20, -1);
-    y += 26;
-    const Str labels[HK_COUNT] = {S_COUNT, S_HK_SMART, S_HK_FIX, S_HK_NUM, S_HK_BAHT, S_HK_YEAR};
-    for (int i = HK_SMART; i < HK_COUNT; ++i) {
-        Ctl(w, L"STATIC", T(labels[i]), 0, 0, L + 12, y + 3, 230, 20, -1);
-        HWND h = Ctl(w, HOTKEY_CLASSW, L"", WS_TABSTOP, WS_EX_CLIENTEDGE, L + 250, y, 170, 24, C_HK_FIRST + i);
-        SendMessageW(h, HKM_SETHOTKEY, ToHotkeyCtl(g_set.hotkey[i]), 0);
-        // Plain keys and Shift+key are for typing; turn them into Ctrl+Alt.
-        SendMessageW(h, HKM_SETRULES, HKCOMB_NONE | HKCOMB_S, MAKELPARAM(HOTKEYF_CONTROL | HOTKEYF_ALT, 0));
-        y += 30;
-    }
+    // ---- Left column: converting text
+    header(L, S_SEC_CONVERT);
+    BuildShortcut(w, L, y, S_SC_MAIN, C_MAIN, g_set.main);
+    BuildShortcut(w, L, y, S_SC_UNDO, C_UNDO, g_set.undo);
+    Ctl(w, L"STATIC", T(S_FEATURES), 0, 0, L, y, LW, 20, -1);
+    y += 24;
+    check(L + 14, LW - 14, C_F_FIX, S_F_FIX, (g_set.features & salap::FixLanguage) != 0, WS_GROUP);
+    check(L + 14, LW - 14, C_F_NUM, S_F_NUM, (g_set.features & salap::Numerals) != 0);
+    check(L + 14, LW - 14, C_F_YEAR, S_F_YEAR, (g_set.features & salap::Years) != 0);
+    check(L + 14, LW - 14, C_F_BAHT, S_F_BAHT, (g_set.features & salap::BahtText) != 0);
+    y += 6;
+    check(L, LW, C_KEEP, S_KEEP_SEL, g_set.keepSelected);
+    y += 4;
+    Ctl(w, L"BUTTON", T(S_EXCLUDED_BTN), WS_TABSTOP, 0, L, y, 230, 28, C_EXCLUDED);
+    int leftBottom = y + 28;
 
-    y += 8;
-    Ctl(w, L"STATIC", T(S_EXCLUDED), 0, 0, L, y, W_, 20, -1);
-    y += 22;
-    Ctl(w, L"EDIT", g_set.excluded.c_str(), ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL | WS_TABSTOP,
-        WS_EX_CLIENTEDGE, L, y, W_, 56, C_EXCLUDED);
-    y += 68;
+    // ---- Right column: badge, then general
+    y = 16;
+    header(R, S_SEC_BADGE);
+    check(R, RW, C_BADGE, S_BADGE, g_set.badge);
+    y += 4;
+    Ctl(w, L"STATIC", T(S_POSITION), 0, 0, R, y + 3, 120, 20, -1);
+    HWND pos = Ctl(w, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_TABSTOP, 0, R + 130, y, 170, 200, C_POS);
+    for (Str sId : {S_POS_BR, S_POS_BL, S_POS_TR, S_POS_TL}) SendMessageW(pos, CB_ADDSTRING, 0, (LPARAM)T(sId));
+    SendMessageW(pos, CB_SETCURSEL, g_set.badgeCorner, 0);
+    y += 34;
+    Ctl(w, L"STATIC", T(S_DISTANCE), 0, 0, R, y, RW, 20, -1);
+    y += 20;
+    HWND gap = Ctl(w, TRACKBAR_CLASSW, L"", TBS_HORZ | TBS_AUTOTICKS | WS_TABSTOP, 0, R - 6, y, RW + 12, 30, C_GAP);
+    SendMessageW(gap, TBM_SETRANGEMIN, FALSE, -8);
+    SendMessageW(gap, TBM_SETRANGEMAX, FALSE, 30);
+    SendMessageW(gap, TBM_SETTICFREQ, 2, 0);
+    SendMessageW(gap, TBM_SETPOS, TRUE, g_set.badgeGap);
+    y += 40;
+    auto swatches = [&](Str label, int base) {
+        Ctl(w, L"STATIC", T(label), 0, 0, R, y, RW, 20, -1);
+        y += 22;
+        for (int i = 0; i < kPaletteCount; ++i)
+            Ctl(w, L"BUTTON", L"", BS_OWNERDRAW | WS_TABSTOP, 0, R + i * 34, y, 28, 28, base + i);
+        y += 40;
+    };
+    swatches(S_COLOR_TH, C_SW_TH);
+    swatches(S_COLOR_EN, C_SW_EN);
 
-    Ctl(w, L"STATIC", T(S_LANGUAGE), 0, 0, L, y + 3, 150, 20, -1);
-    HWND combo = Ctl(w, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_TABSTOP, 0, L + 250, y, 170, 200, C_LANG);
+    y += 6;
+    header(R, S_SEC_GENERAL);
+    check(R, RW, C_RUN, S_RUN_LOGIN, g_set.runAtLogin);
+    y += 4;
+    Ctl(w, L"STATIC", T(S_LANGUAGE), 0, 0, R, y + 3, 120, 20, -1);
+    HWND combo = Ctl(w, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_TABSTOP, 0, R + 130, y, 170, 200, C_LANG);
     SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)T(S_LANG_AUTO));
     SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)L"ไทย");
     SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)L"English");
     SendMessageW(combo, CB_SETCURSEL, g_set.uiLang, 0);
-    y += 44;
+    y += 30;
 
-    Ctl(w, L"BUTTON", T(S_SAVE), BS_DEFPUSHBUTTON | WS_TABSTOP, 0, L + W_ - 200, y, 95, 28, C_SAVE);
-    Ctl(w, L"BUTTON", T(S_CANCEL), WS_TABSTOP, 0, L + W_ - 95, y, 95, 28, C_CANCEL);
+    y = max(y, leftBottom) + 20;
+    const int total = R + RW;
+    Ctl(w, L"BUTTON", T(S_SAVE), BS_DEFPUSHBUTTON | WS_TABSTOP, 0, total - 200, y, 95, 28, C_SAVE);
+    Ctl(w, L"BUTTON", T(S_CANCEL), WS_TABSTOP, 0, total - 95, y, 95, 28, C_CANCEL);
     y += 28 + 18;
 
-    RECT r = {0, 0, Dp(W_ + 2 * L), Dp(y)};
+    RECT r = {0, 0, Dp(total + L), Dp(y)};
     AdjustWindowRectEx(&r, (DWORD)GetWindowLongPtrW(w, GWL_STYLE), FALSE, (DWORD)GetWindowLongPtrW(w, GWL_EXSTYLE));
     int ww = r.right - r.left, wh = r.bottom - r.top;
     RECT work;
     SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0);
     SetWindowPos(w, nullptr, work.left + (work.right - work.left - ww) / 2,
-                 work.top + (work.bottom - work.top - wh) / 2, ww, wh, SWP_NOZORDER);
+                 work.top + max(0, (int)(work.bottom - work.top - wh) / 2), ww, wh, SWP_NOZORDER);
 }
 
 void SaveFromSettings(HWND w) {
     auto checked = [&](int id) { return IsDlgButtonChecked(w, id) == BST_CHECKED; };
     g_set.runAtLogin = checked(C_RUN);
-    g_set.badge = checked(C_BADGE);
-    g_set.fixEnabled = checked(C_ENFIX);
-    g_set.numEnabled = checked(C_ENNUM);
-    g_set.keepSelected = checked(C_KEEP);
-    for (int i = HK_SMART; i < HK_COUNT; ++i)
-        g_set.hotkey[i] = FromHotkeyCtl((WORD)SendDlgItemMessageW(w, C_HK_FIRST + i, HKM_GETHOTKEY, 0, 0));
-    wchar_t buf[2048];
-    GetDlgItemTextW(w, C_EXCLUDED, buf, ARRAYSIZE(buf));
-    g_set.excluded = buf;
-    for (wchar_t& c : g_set.excluded)
-        if (c == L'\r' || c == L'\n') c = L' ';  // one line in the settings file
     int lang = (int)SendDlgItemMessageW(w, C_LANG, CB_GETCURSEL, 0, 0);
     g_set.uiLang = lang < 0 ? 0 : lang;
+    g_set.main = ReadShortcut(w, C_MAIN);
+    g_set.undo = ReadShortcut(w, C_UNDO);
+    unsigned features = 0;
+    if (checked(C_F_FIX)) features |= salap::FixLanguage;
+    if (checked(C_F_NUM)) features |= salap::Numerals;
+    if (checked(C_F_YEAR)) features |= salap::Years;
+    if (checked(C_F_BAHT)) features |= salap::BahtText;
+    g_set.features = features;
+    g_set.keepSelected = checked(C_KEEP);
+    g_set.excluded = g_pendingExcluded;
+    // The badge settings were applied as they were changed.
     SaveSettings();
 }
 
+void DrawSwatch(const DRAWITEMSTRUCT* d) {
+    const bool thai = d->CtlID < (UINT)C_SW_EN;
+    const int index = (int)d->CtlID - (thai ? C_SW_TH : C_SW_EN);
+    if (index < 0 || index >= kPaletteCount) return;
+    const bool chosen = index == (thai ? g_set.colorTh : g_set.colorEn);
+    const Color c = kPalette[index];
+    RECT r = d->rcItem;
+    FillRect(d->hDC, &r, GetSysColorBrush(COLOR_WINDOW));
+    HBRUSH fill = CreateSolidBrush(RGB(c.r, c.g, c.b));
+    HPEN pen = CreatePen(PS_SOLID, chosen ? Dp(3) : 1, chosen ? GetSysColor(COLOR_WINDOWTEXT) : RGB(c.r, c.g, c.b));
+    HGDIOBJ oldB = SelectObject(d->hDC, fill), oldP = SelectObject(d->hDC, pen);
+    int inset = chosen ? Dp(2) : Dp(4);
+    RoundRect(d->hDC, r.left + inset, r.top + inset, r.right - inset, r.bottom - inset, Dp(8), Dp(8));
+    SelectObject(d->hDC, oldB);
+    SelectObject(d->hDC, oldP);
+    DeleteObject(fill);
+    DeleteObject(pen);
+    if (d->itemState & ODS_FOCUS) DrawFocusRect(d->hDC, &r);
+}
+
+void OpenExcluded(HWND owner);
+
 LRESULT CALLBACK SettingsProc(HWND w, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
-        case WM_COMMAND:
-            if (LOWORD(wp) == C_SAVE || LOWORD(wp) == IDOK) {
+        case WM_COMMAND: {
+            const int id = LOWORD(wp);
+            if (id == C_SAVE || id == IDOK) {
                 SaveFromSettings(w);
                 DestroyWindow(w);
-            } else if (LOWORD(wp) == C_CANCEL || LOWORD(wp) == IDCANCEL) {
+            } else if (id == C_CANCEL || id == IDCANCEL) {
+                g_set = g_before;
                 DestroyWindow(w);
+            } else if (id == C_EXCLUDED) {
+                OpenExcluded(w);
+            } else if (id == C_BADGE) {
+                g_set.badge = IsDlgButtonChecked(w, C_BADGE) == BST_CHECKED;
+            } else if (id == C_POS && HIWORD(wp) == CBN_SELCHANGE) {
+                int i = (int)SendDlgItemMessageW(w, C_POS, CB_GETCURSEL, 0, 0);
+                if (i >= 0 && i <= 3) g_set.badgeCorner = i;
+            } else if (id >= C_SW_TH && id < C_SW_TH + kPaletteCount) {
+                g_set.colorTh = id - C_SW_TH;
+            } else if (id >= C_SW_EN && id < C_SW_EN + kPaletteCount) {
+                g_set.colorEn = id - C_SW_EN;
+            } else {
+                return 0;
+            }
+            if (id >= C_SW_TH) {
+                for (int i = 0; i < kPaletteCount; ++i) {
+                    InvalidateRect(GetDlgItem(w, C_SW_TH + i), nullptr, TRUE);
+                    InvalidateRect(GetDlgItem(w, C_SW_EN + i), nullptr, TRUE);
+                }
+                g_b.code.clear();  // repaint the badge in the new colour
             }
             return 0;
+        }
+        case WM_HSCROLL:
+            if ((HWND)lp == GetDlgItem(w, C_GAP)) g_set.badgeGap = (int)SendMessageW((HWND)lp, TBM_GETPOS, 0, 0);
+            return 0;
+        case WM_DRAWITEM:
+            DrawSwatch((const DRAWITEMSTRUCT*)lp);
+            return TRUE;
         case WM_CTLCOLORSTATIC:
+        case WM_CTLCOLORBTN:
             SetBkMode((HDC)wp, TRANSPARENT);
             return (LRESULT)GetSysColorBrush(COLOR_WINDOW);
         case WM_CLOSE:
+            g_set = g_before;
             DestroyWindow(w);
             return 0;
         case WM_DESTROY: {
             g_settingsWnd = nullptr;
+            g_b.code.clear();
             std::wstring failed = RegisterHotkeys();
             if (!failed.empty())
                 MessageBoxW(nullptr, (std::wstring(T(S_HK_FAIL)) + failed).c_str(), L"Salap",
@@ -1054,21 +1473,163 @@ LRESULT CALLBACK SettingsProc(HWND w, UINT msg, WPARAM wp, LPARAM lp) {
 
 void OpenSettings() {
     if (g_settingsWnd) {
-        SetForegroundWindow(g_settingsWnd);
+        SetForegroundWindow(g_excludedWnd ? g_excludedWnd : g_settingsWnd);
         return;
     }
-    UnregisterHotkeys();  // so shortcuts can be typed into the boxes
+    g_before = g_set;
+    g_pendingExcluded = g_set.excluded;
     g_settingsWnd = CreateWindowExW(WS_EX_DLGMODALFRAME, L"SalapSettings", T(S_SETTINGS_TITLE),
                                     WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_CLIPCHILDREN, 0, 0, 100,
                                     100, nullptr, nullptr, g_inst, nullptr);
-    if (!g_settingsWnd) {
-        RegisterHotkeys();
-        return;
-    }
+    if (!g_settingsWnd) return;
+    // No shortcuts while the window is open, so that choosing one cannot set it off.
+    UnregisterHotkeys();
+    SyncHooks();
     BuildSettings(g_settingsWnd);
     SendMessageW(g_settingsWnd, WM_SETICON, ICON_SMALL, (LPARAM)g_trayIcon);
     ShowWindow(g_settingsWnd, SW_SHOW);
     SetForegroundWindow(g_settingsWnd);
+}
+
+// ---------------------------------------------------------------------------
+// "Apps where Salap is off" window
+// ---------------------------------------------------------------------------
+
+void FillExcludedList(HWND w) {
+    HWND list = GetDlgItem(w, C_EX_LIST);
+    SendMessageW(list, LB_RESETCONTENT, 0, 0);
+    for (const wchar_t* b : kBuiltInExcluded)
+        SendMessageW(list, LB_ADDSTRING, 0, (LPARAM)(std::wstring(b) + T(S_EX_BUILTIN)).c_str());
+    for (const std::wstring& e : g_pendingExcluded) SendMessageW(list, LB_ADDSTRING, 0, (LPARAM)e.c_str());
+    EnableWindow(GetDlgItem(w, C_EX_REMOVE), FALSE);
+}
+
+void AddExcluded(HWND w, const std::wstring& name) {
+    if (name.empty() || IsBuiltInExcluded(name) || InList(g_pendingExcluded, name)) return;
+    g_pendingExcluded.push_back(name);
+    FillExcludedList(w);
+    SendDlgItemMessageW(w, C_EX_LIST, LB_SETCURSEL, ARRAYSIZE(kBuiltInExcluded) + g_pendingExcluded.size() - 1, 0);
+    EnableWindow(GetDlgItem(w, C_EX_REMOVE), TRUE);
+}
+
+struct RunningApp {
+    std::wstring exe, title;
+};
+
+BOOL CALLBACK CollectApps(HWND w, LPARAM lp) {
+    auto* apps = (std::vector<RunningApp>*)lp;
+    if (!IsWindowVisible(w) || GetWindow(w, GW_OWNER)) return TRUE;
+    if (GetWindowLongPtrW(w, GWL_EXSTYLE) & WS_EX_TOOLWINDOW) return TRUE;
+    wchar_t title[80];
+    if (!GetWindowTextW(w, title, ARRAYSIZE(title))) return TRUE;
+    DWORD pid = 0;
+    GetWindowThreadProcessId(w, &pid);
+    if (pid == GetCurrentProcessId()) return TRUE;
+    std::wstring exe = ProcessName(w);
+    if (exe.empty() || IsBuiltInExcluded(exe) || InList(g_pendingExcluded, exe)) return TRUE;
+    for (const RunningApp& a : *apps)
+        if (!lstrcmpiW(a.exe.c_str(), exe.c_str())) return TRUE;
+    std::wstring t(title);
+    if (t.size() > 40) t = t.substr(0, 40) + L"…";
+    apps->push_back({exe, t});
+    return TRUE;
+}
+
+void AddRunningApp(HWND w) {
+    std::vector<RunningApp> apps;
+    EnumWindows(CollectApps, (LPARAM)&apps);
+    HMENU m = CreatePopupMenu();
+    if (apps.empty()) AppendMenuW(m, MF_STRING | MF_GRAYED, 0, T(S_EX_NONE_RUNNING));
+    for (size_t i = 0; i < apps.size() && i < 40; ++i)
+        AppendMenuW(m, MF_STRING, i + 1, (apps[i].exe + L"   —   " + apps[i].title).c_str());
+    RECT r;
+    GetWindowRect(GetDlgItem(w, C_EX_ADD), &r);
+    UINT cmd = TrackPopupMenu(m, TPM_RETURNCMD | TPM_NONOTIFY, r.left, r.bottom, 0, w, nullptr);
+    DestroyMenu(m);
+    if (cmd >= 1 && cmd <= apps.size()) AddExcluded(w, apps[cmd - 1].exe);
+}
+
+void BrowseForApp(HWND w) {
+    wchar_t file[MAX_PATH * 2] = L"";
+    OPENFILENAMEW ofn = {};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = w;
+    ofn.lpstrFilter = L"Programs (*.exe)\0*.exe\0";
+    ofn.lpstrFile = file;
+    ofn.nMaxFile = ARRAYSIZE(file);
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
+    if (!GetOpenFileNameW(&ofn)) return;
+    std::wstring name(file);
+    size_t slash = name.find_last_of(L"\\/");
+    if (slash != std::wstring::npos) name = name.substr(slash + 1);
+    AddExcluded(w, name);
+}
+
+LRESULT CALLBACK ExcludedProc(HWND w, UINT msg, WPARAM wp, LPARAM lp) {
+    switch (msg) {
+        case WM_COMMAND: {
+            const int id = LOWORD(wp);
+            const int builtIn = (int)ARRAYSIZE(kBuiltInExcluded);
+            int sel = (int)SendDlgItemMessageW(w, C_EX_LIST, LB_GETCURSEL, 0, 0);
+            if (id == C_EX_LIST && HIWORD(wp) == LBN_SELCHANGE) {
+                EnableWindow(GetDlgItem(w, C_EX_REMOVE), sel >= builtIn);
+            } else if (id == C_EX_ADD) {
+                AddRunningApp(w);
+            } else if (id == C_EX_BROWSE) {
+                BrowseForApp(w);
+            } else if (id == C_EX_REMOVE && sel >= builtIn && sel - builtIn < (int)g_pendingExcluded.size()) {
+                g_pendingExcluded.erase(g_pendingExcluded.begin() + (sel - builtIn));
+                FillExcludedList(w);
+            } else if (id == C_EX_CLOSE || id == IDOK || id == IDCANCEL) {
+                DestroyWindow(w);
+            }
+            return 0;
+        }
+        case WM_CTLCOLORSTATIC:
+            SetBkMode((HDC)wp, TRANSPARENT);
+            return (LRESULT)GetSysColorBrush(COLOR_WINDOW);
+        case WM_CLOSE:
+            DestroyWindow(w);
+            return 0;
+        case WM_DESTROY:
+            g_excludedWnd = nullptr;
+            if (g_settingsWnd) {
+                EnableWindow(g_settingsWnd, TRUE);
+                SetForegroundWindow(g_settingsWnd);
+            }
+            return 0;
+    }
+    return DefWindowProcW(w, msg, wp, lp);
+}
+
+void OpenExcluded(HWND owner) {
+    if (g_excludedWnd) return;
+    HWND w = CreateWindowExW(WS_EX_DLGMODALFRAME, L"SalapExcluded", T(S_EX_TITLE),
+                             WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_CLIPCHILDREN, 0, 0, 100, 100,
+                             owner, nullptr, g_inst, nullptr);
+    if (!w) return;
+    g_excludedWnd = w;
+    const int L = 20, W_ = 400;
+    int y = 16;
+    Ctl(w, L"STATIC", T(S_EX_INFO), 0, 0, L, y, W_, 20, -1);
+    y += 28;
+    Ctl(w, L"LISTBOX", L"", LBS_NOTIFY | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP, WS_EX_CLIENTEDGE, L, y, W_, 260, C_EX_LIST);
+    y += 272;
+    Ctl(w, L"BUTTON", T(S_EX_ADD_RUNNING), WS_TABSTOP, 0, L, y, 170, 28, C_EX_ADD);
+    Ctl(w, L"BUTTON", T(S_EX_BROWSE), WS_TABSTOP, 0, L + 178, y, 100, 28, C_EX_BROWSE);
+    Ctl(w, L"BUTTON", T(S_EX_REMOVE), WS_TABSTOP, 0, L + W_ - 100, y, 100, 28, C_EX_REMOVE);
+    y += 44;
+    Ctl(w, L"BUTTON", T(S_EX_CLOSE), BS_DEFPUSHBUTTON | WS_TABSTOP, 0, L + W_ - 100, y, 100, 28, C_EX_CLOSE);
+    y += 28 + 18;
+    FillExcludedList(w);
+
+    RECT r = {0, 0, Dp(W_ + 2 * L), Dp(y)};
+    AdjustWindowRectEx(&r, (DWORD)GetWindowLongPtrW(w, GWL_STYLE), FALSE, (DWORD)GetWindowLongPtrW(w, GWL_EXSTYLE));
+    RECT o;
+    GetWindowRect(owner, &o);
+    SetWindowPos(w, nullptr, o.left + Dp(40), o.top + Dp(40), r.right - r.left, r.bottom - r.top, SWP_NOZORDER);
+    EnableWindow(owner, FALSE);
+    ShowWindow(w, SW_SHOW);
 }
 
 // ---------------------------------------------------------------------------
@@ -1078,21 +1639,19 @@ void OpenSettings() {
 LRESULT CALLBACK MainProc(HWND w, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
         case WM_HOTKEY:
-            switch (wp) {
-                case HK_SMART: RunAction(K_SMART, false); break;
-                case HK_FIX: RunAction(K_FIX, false); break;
-                case HK_NUM: RunAction(K_NUM, false); break;
-                case HK_BAHT: RunAction(K_BAHT, false); break;
-                case HK_YEAR: RunAction(K_YEAR, false); break;
-            }
+            if (wp == HK_MAIN) RunAction(K_CYCLE, false);
+            else if (wp == HK_UNDO) RunAction(K_UNDO, false);
+            return 0;
+        case WM_DOUBLETAP:
+            if (g_settingsWnd) return 0;
+            if (g_set.main.type == SC_DOUBLE && g_set.main.vk == wp) RunAction(K_CYCLE, false);
+            else if (g_set.undo.type == SC_DOUBLE && g_set.undo.vk == wp) RunAction(K_UNDO, false);
             return 0;
         case WM_TIMER:
             UpdateBadge();
             return 0;
         case WM_TRAY:
-            if (LOWORD(lp) == WM_RBUTTONUP || LOWORD(lp) == WM_CONTEXTMENU) ShowMenu();
-            else if (LOWORD(lp) == WM_LBUTTONUP) ShowMenu();
-            else if (LOWORD(lp) == WM_LBUTTONDBLCLK) OpenSettings();
+            if (LOWORD(lp) == WM_RBUTTONUP || LOWORD(lp) == WM_CONTEXTMENU || LOWORD(lp) == WM_LBUTTONUP) ShowMenu();
             return 0;
         case WM_SETTINGCHANGE:
         case WM_DISPLAYCHANGE:
@@ -1123,7 +1682,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int) {
     g_dpi = GetDeviceCaps(screen, LOGPIXELSX);
     ReleaseDC(nullptr, screen);
 
-    INITCOMMONCONTROLSEX icc = {sizeof(icc), ICC_HOTKEY_CLASS | ICC_STANDARD_CLASSES};
+    INITCOMMONCONTROLSEX icc = {sizeof(icc), ICC_BAR_CLASSES | ICC_STANDARD_CLASSES};
     InitCommonControlsEx(&icc);
     Gdiplus::GdiplusStartupInput gdiInput;
     ULONG_PTR gdiToken = 0;
@@ -1133,6 +1692,8 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int) {
     ncm.cbSize = sizeof(ncm);
     SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0);
     g_font = CreateFontIndirectW(&ncm.lfMessageFont);
+    ncm.lfMessageFont.lfWeight = FW_BOLD;
+    g_fontBold = CreateFontIndirectW(&ncm.lfMessageFont);
 
     WNDCLASSEXW wc = {};
     wc.cbSize = sizeof(wc);
@@ -1143,16 +1704,26 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int) {
     wc.lpfnWndProc = DefWindowProcW;
     wc.lpszClassName = L"SalapBadge";
     RegisterClassExW(&wc);
-    wc.lpfnWndProc = SettingsProc;
-    wc.lpszClassName = L"SalapSettings";
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     wc.hbrBackground = GetSysColorBrush(COLOR_WINDOW);
+    wc.lpfnWndProc = SettingsProc;
+    wc.lpszClassName = L"SalapSettings";
+    RegisterClassExW(&wc);
+    wc.lpfnWndProc = ExcludedProc;
+    wc.lpszClassName = L"SalapExcluded";
     RegisterClassExW(&wc);
 
     g_main = CreateWindowExW(0, L"SalapMain", L"Salap", 0, 0, 0, 0, 0, nullptr, nullptr, inst, nullptr);
     g_badge = CreateWindowExW(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
                               L"SalapBadge", L"", WS_POPUP, 0, 0, 1, 1, nullptr, nullptr, inst, nullptr);
     if (!g_main || !g_badge) return 1;
+
+    HANDLE ready = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    HANDLE hookThread = CreateThread(nullptr, 0, HookThread, ready, 0, &g_hookThreadId);
+    if (ready) {
+        WaitForSingleObject(ready, 2000);
+        CloseHandle(ready);
+    }
 
     LoadSettings();
     ReadPointerSize();
@@ -1167,7 +1738,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int) {
 
     if (g_firstRun) {
         SaveSettings();
-        OpenSettings();  // also registers the shortcuts when it closes
+        OpenSettings();  // registers the shortcuts when it closes
     } else {
         std::wstring failed = RegisterHotkeys();
         if (!failed.empty())
@@ -1177,6 +1748,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int) {
 
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
+        if (g_excludedWnd && IsDialogMessageW(g_excludedWnd, &msg)) continue;
         if (g_settingsWnd && IsDialogMessageW(g_settingsWnd, &msg)) continue;
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
@@ -1184,8 +1756,14 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int) {
 
     if (hook) UnhookWinEvent(hook);
     UnregisterHotkeys();
+    if (hookThread) {
+        PostThreadMessageW(g_hookThreadId, WM_QUIT, 0, 0);
+        WaitForSingleObject(hookThread, 1000);
+        CloseHandle(hookThread);
+    }
     if (g_trayIcon) DestroyIcon(g_trayIcon);
     if (g_font) DeleteObject(g_font);
+    if (g_fontBold) DeleteObject(g_fontBold);
     Gdiplus::GdiplusShutdown(gdiToken);
     if (mutex) CloseHandle(mutex);
     return 0;

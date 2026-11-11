@@ -20,8 +20,18 @@ char* salap_baht_text(const char* number);
 /* `converted` may be NULL. */
 char* salap_convert_years(const char* text, int* converted);
 
-/* 0 = nothing, 1 = fix language, 2 = numerals */
-int salap_smart_action(const char* text);
+/* Returns NULL if `words` is not an amount as salap_baht_text writes it. */
+char* salap_parse_baht_text(const char* words);
+
+/* Conversions the shared shortcut should offer for `text`, in order.
+ * `features` is a bit mask: 1 fix language, 2 numerals, 4 years, 8 baht text.
+ * Returns the number of results. Get each with salap_cycle_item (index from
+ * 0), then release the list with salap_cycle_free. */
+typedef struct salap_cycle salap_cycle;
+salap_cycle* salap_conversion_cycle(const char* text, unsigned features);
+int salap_cycle_count(const salap_cycle* c);
+const char* salap_cycle_item(const salap_cycle* c, int index); /* owned by the list */
+void salap_cycle_free(salap_cycle* c);
 
 void salap_free(char* s);
 

@@ -171,6 +171,113 @@ bool baht_text(std::u32string_view number, std::u32string& out) {
     return true;
 }
 
+// ---- Baht text back to a number -------------------------------------------------
+
+namespace {
+
+bool eat(std::u32string_view s, size_t& i, std::u32string_view word) {
+    if (s.substr(i, word.size()) != word) return false;
+    i += word.size();
+    return true;
+}
+
+// Reads Thai number words starting at i. Stops at the first word that is not
+// part of a number. False if there was no number or it is too large.
+bool parse_words(std::u32string_view s, size_t& i, unsigned long long& value) {
+    static const std::u32string_view kDigits[] = {U"ศูนย์", U"หนึ่ง", U"สอง", U"สาม", U"สี่",
+                                                  U"ห้า",  U"หก",   U"เจ็ด", U"แปด", U"เก้า"};
+    static const std::u32string_view kPlaces[] = {U"สิบ", U"ร้อย", U"พัน", U"หมื่น", U"แสน"};
+    unsigned long long total = 0, group = 0;
+    int digit = -1;
+    bool any = false;
+    for (;;) {
+        bool matched = false;
+        for (int d = 0; d < 10 && !matched; ++d) {
+            if (eat(s, i, kDigits[d])) {
+                digit = d;
+                matched = true;
+            }
+        }
+        if (!matched && eat(s, i, U"เอ็ด")) {
+            digit = 1;
+            matched = true;
+        }
+        if (!matched && eat(s, i, U"ยี่")) {
+            digit = 2;
+            matched = true;
+        }
+        if (!matched) {
+            unsigned long long place = 10;
+            for (int p = 0; p < 5 && !matched; ++p, place *= 10) {
+                if (eat(s, i, kPlaces[p])) {
+                    group += (digit < 0 ? 1 : digit) * place;
+                    digit = -1;
+                    matched = true;
+                }
+            }
+        }
+        if (!matched && eat(s, i, U"ล้าน")) {
+            if (digit >= 0) group += digit;
+            digit = -1;
+            total += group;
+            group = 0;
+            if (total > 999999999999ULL) return false;  // keeps the result under 10^18
+            total *= 1000000ULL;
+            matched = true;
+        }
+        if (!matched) break;
+        any = true;
+    }
+    if (digit >= 0) group += digit;
+    value = total + group;
+    return any;
+}
+
+}  // namespace
+
+bool parse_baht_text(std::u32string_view words, std::u32string& number_out) {
+    size_t b = 0, e = words.size();
+    while (b < e && is_space(words[b])) ++b;
+    while (e > b && is_space(words[e - 1])) --e;
+    std::u32string_view s = words.substr(b, e - b);
+
+    size_t i = 0;
+    bool negative = eat(s, i, U"ลบ");
+    unsigned long long baht = 0, satang = 0, value = 0;
+    if (!parse_words(s, i, value)) return false;
+    if (eat(s, i, U"บาท")) {
+        baht = value;
+        if (!eat(s, i, U"ถ้วน")) {
+            if (!parse_words(s, i, satang) || !eat(s, i, U"สตางค์")) return false;
+        }
+    } else if (eat(s, i, U"สตางค์")) {
+        satang = value;
+    } else {
+        return false;
+    }
+    if (i != s.size() || satang > 99) return false;
+
+    std::string digits = std::to_string(baht);
+    std::u32string num;
+    if (negative) num += U'-';
+    for (size_t k = 0; k < digits.size(); ++k) {
+        if (k > 0 && (digits.size() - k) % 3 == 0) num += U',';
+        num += static_cast<char32_t>(digits[k]);
+    }
+    if (satang) {
+        num += U'.';
+        num += static_cast<char32_t>(U'0' + satang / 10);
+        num += static_cast<char32_t>(U'0' + satang % 10);
+    }
+
+    // Accept only text that reads back exactly the same, so that loosely
+    // matching phrases are never turned into a wrong number.
+    std::u32string check;
+    if (!baht_text(num, check) || check != s) return false;
+    number_out = num;
+    return true;
+}
+
 // ---- Years ----------------------------------------------------------------------
 
 std::u32string convert_years(std::u32string_view text, int* converted) {

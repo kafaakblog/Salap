@@ -10,7 +10,7 @@ Salap works offline. It has no network access and no telemetry.
 
 ## Status
 
-Early development. Version 0.1.0 for Windows is a first test build; there is no macOS app yet and no installer.
+Early development. Version 0.2.0 for Windows is a test build; there is no macOS app yet and no installer.
 
 | Part | State |
 |---|---|
@@ -24,9 +24,10 @@ Early development. Version 0.1.0 for Windows is a first test build; there is no 
 1. Open the latest successful run under [Actions](https://github.com/kafaakblog/Salap/actions) and download **Salap-Windows-x64**.
 2. Unzip it and run `Salap.exe`. Windows may warn that the file is unsigned; choose **More info → Run anyway**.
 3. Settings opens the first time. A blue **ส** icon appears in the tray.
-4. In Notepad, type `l;ylfu`, select it, and press **Ctrl+Alt+S**. It becomes `สวัสดี`. Select `1,234` and press it again for `๑,๒๓๔`.
+4. In Notepad, type `l;ylfu`, select it, and tap **Ctrl twice**. It becomes `สวัสดี`.
+5. Select `1,250` and tap Ctrl twice: `๑,๒๕๐`. Tap twice again: `หนึ่งพันสองร้อยห้าสิบบาทถ้วน`. Once more brings `1,250` back.
 
-Pressing the shortcut again on the converted text switches to the other conversion, then back to the original. The tray menu has the same commands plus amount-in-words and year conversion.
+One shortcut does everything. Salap looks at what is selected and offers the conversions that fit, one per press, then the original text again. **Ctrl+Alt+Z** undoes the last conversion. Both shortcuts, the conversions the shortcut uses, the badge's position, distance and colors, and the apps where Salap stays off are all in Settings.
 
 Salap skips terminals, because it reads the selection with Ctrl+C. Settings are stored in `%APPDATA%\Salap\settings.ini`.
 
@@ -39,6 +40,7 @@ Salap skips terminals, because it reads the selection with Ctrl+C. Settings are 
 | Arabic → Thai digits | `ข้อ 3 วรรค 2` → `ข้อ ๓ วรรค ๒` |
 | Thai → Arabic digits | `๐๐๑,๒๓๔.๕๐` → `001,234.50` |
 | Amount in Thai words | `1,234,567.89` → `หนึ่งล้านสองแสนสามหมื่นสี่พันห้าร้อยหกสิบเจ็ดบาทแปดสิบเก้าสตางค์` |
+| Thai words → number | `หนึ่งพันสองร้อยห้าสิบบาทถ้วน` → `1,250` |
 | พ.ศ. → ค.ศ. | `พ.ศ. ๒๕๖๙` → `ค.ศ. 2026` |
 | ค.ศ. → พ.ศ. | `ค.ศ. 2026` → `พ.ศ. 2569` (or `๒๕๖๙` when the text around it uses Thai digits) |
 

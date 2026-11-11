@@ -28,18 +28,21 @@ size_t caret_steps(std::u32string_view text) {
 }
 
 Point place_badge(const BadgeInput& in) {
-    // The visible part of most cursors (arrow, hand) fills roughly the
-    // top-left three fifths of the image, so tuck the badge in under it
-    // instead of clearing the whole, mostly empty, image box.
-    int right_reach = (in.cursor_w - in.hot_x) * 3 / 5;
-    int down_reach = (in.cursor_h - in.hot_y) * 4 / 5;
-    int left_reach = in.hot_x * 3 / 5;
-    int up_reach = in.hot_y * 4 / 5;
+    const bool want_right = in.corner == Corner::BottomRight || in.corner == Corner::TopRight;
+    const bool want_below = in.corner == Corner::BottomRight || in.corner == Corner::BottomLeft;
 
-    int x = in.pointer.x + right_reach + in.gap;
-    int y = in.pointer.y + down_reach + in.gap;
-    if (x + in.badge_w > in.screen.right) x = in.pointer.x - left_reach - in.gap - in.badge_w;
-    if (y + in.badge_h > in.screen.bottom) y = in.pointer.y - up_reach - in.gap - in.badge_h;
+    const int right_x = in.pointer.x + in.cursor.right + in.gap;
+    const int left_x = in.pointer.x + in.cursor.left - in.gap - in.badge_w;
+    const int below_y = in.pointer.y + in.cursor.bottom + in.gap;
+    const int above_y = in.pointer.y + in.cursor.top - in.gap - in.badge_h;
+
+    int x = want_right ? right_x : left_x;
+    if (want_right && x + in.badge_w > in.screen.right) x = left_x;
+    else if (!want_right && x < in.screen.left) x = right_x;
+
+    int y = want_below ? below_y : above_y;
+    if (want_below && y + in.badge_h > in.screen.bottom) y = above_y;
+    else if (!want_below && y < in.screen.top) y = below_y;
 
     x = clamp(x, in.screen.left, in.screen.right - in.badge_w);
     y = clamp(y, in.screen.top, in.screen.bottom - in.badge_h);

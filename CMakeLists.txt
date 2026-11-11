@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(Salap VERSION 0.1.0 LANGUAGES CXX)
+project(Salap VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,6 +15,7 @@ else()
 endif()
 
 add_library(salap_core STATIC
+  core/src/cycle.cpp
   core/src/encoding.cpp
   core/src/helpers.cpp
   core/src/layout.cpp
@@ -30,7 +31,7 @@ add_test(NAME core COMMAND salap_core_tests)
 
 if(WIN32)
   add_executable(Salap WIN32 windows/Salap.cpp)
-  target_link_libraries(Salap PRIVATE salap_core gdiplus comctl32 shell32 user32 gdi32 advapi32)
+  target_link_libraries(Salap PRIVATE salap_core gdiplus comctl32 comdlg32 shell32 user32 gdi32 advapi32)
   if(MINGW)
     target_link_options(Salap PRIVATE -municode -static)
   endif()
