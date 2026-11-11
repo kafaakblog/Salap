@@ -37,7 +37,7 @@ using std::min;
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 
-#define SALAP_VERSION L"0.3.1"
+#define SALAP_VERSION L"0.3.2"
 
 namespace {
 
@@ -54,7 +54,7 @@ enum Str {
     S_DISTANCE, S_COLOR_TH, S_COLOR_EN,
     S_SAVE, S_CANCEL, S_HK_FAIL,
     S_EX_TITLE, S_EX_INFO, S_EX_BUILTIN, S_EX_ADD_RUNNING, S_EX_BROWSE, S_EX_REMOVE,
-    S_EX_CLOSE, S_EX_NONE_RUNNING, S_YEAR_HINT,
+    S_EX_CLOSE, S_EX_NONE_RUNNING, S_YEAR_HINT, S_FEATURES_NOTE,
     S_COUNT
 };
 
@@ -106,6 +106,7 @@ const wchar_t* const kEn[] = {
     L"Close",
     L"(no other apps are open)",
     L"To convert a year, select it together with พ.ศ. or ค.ศ.\n\nFor example: select “พ.ศ. 2569”, not just “2569”.",
+    L"Unticked ones are still in the menu of the Salap icon near the clock.",
 };
 
 const wchar_t* const kTh[] = {
@@ -156,6 +157,7 @@ const wchar_t* const kTh[] = {
     L"ปิด",
     L"(ไม่มีแอปอื่นเปิดอยู่)",
     L"การแปลงปีต้องเลือกคำว่า พ.ศ. หรือ ค.ศ. พร้อมกับปีด้วย\n\nเช่น เลือก “พ.ศ. 2569” ไม่ใช่เลือกแค่ “2569”",
+    L"รายการที่ไม่ได้ติ๊กยังใช้ได้จากเมนูของไอคอน Salap ข้างนาฬิกา",
 };
 
 static_assert(ARRAYSIZE(kEn) == S_COUNT, "English strings out of step with Str");
@@ -1321,7 +1323,8 @@ void BuildSettings(HWND w) {
     check(L + 14, LW - 14, C_F_NUM, S_F_NUM, (g_set.features & salap::Numerals) != 0);
     check(L + 14, LW - 14, C_F_YEAR, S_F_YEAR, (g_set.features & salap::Years) != 0);
     check(L + 14, LW - 14, C_F_BAHT, S_F_BAHT, (g_set.features & salap::BahtText) != 0);
-    y += 6;
+    Ctl(w, L"STATIC", T(S_FEATURES_NOTE), 0, 0, L + 14, y + 2, LW - 14, 20, -1);
+    y += 32;
     check(L, LW, C_KEEP, S_KEEP_SEL, g_set.keepSelected);
     y += 4;
     Ctl(w, L"BUTTON", T(S_EXCLUDED_BTN), WS_TABSTOP, 0, L, y, 230, 28, C_EXCLUDED);

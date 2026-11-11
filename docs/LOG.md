@@ -48,6 +48,7 @@ A small macOS and Windows app for Thai users that fixes text typed in the wrong 
 | 2026-11-11 | Accepted label spellings: พ.ศ. พ.ศ พศ. พศ (and with ค), with or without a space, Arabic or Thai digits. The label keeps its style when swapped. | Scenarios listed by @kafaak. |
 | 2026-11-11 | Keep the year feature. Dotted labels convert on the first press; undotted ones (พศ 2569) switch digits first and convert the year on the next press. | @kafaak offered to drop the feature over cases like licence plates. The dotted form is unambiguous, the undotted form is only one press further away, and the feature can be unticked in Settings. Chosen by Claude. |
 | 2026-11-11 | Settings and the tray menu say that พ.ศ. or ค.ศ. must be selected with the year; the tray command explains this when it finds no labelled year. | Requested by @kafaak. |
+| 2026-11-11 | Year conversion can be used both ways, by the user's choice: ticked in Settings it is part of the shortcut; unticked it is in the tray menu only. The same holds for every conversion, and Settings says so. | @kafaak: "keep both", after weighing shortcut against menu-only. |
 
 ## Approved scope
 
@@ -114,10 +115,11 @@ Extras
 | 2026-11-11 | Windows 0.3.0: fixed the `8'gf=` case in the engine, limited tap-twice to Ctrl, added the icon (`windows/Salap.ico`, `assets/icon.png`) and file version details. Tests: 52,644 checks. Compiles cleanly; not yet run. |
 | 2026-11-11 | @kafaak tested 0.3.0: year conversion did not work as expected. Asked that it require the พ.ศ. / ค.ศ. label and listed eight spellings to support. |
 | 2026-11-11 | Windows 0.3.1: year conversion rewritten around the label, with ranges; cycle order updated; hint text in Settings and on the tray command. Tests: 52,666 checks. Compiles cleanly; not yet run. |
+| 2026-11-11 | Windows 0.3.2: Settings now states that unticked conversions remain in the tray menu. |
 
 ## Open items
 
-- **Windows 0.3.1 still needs checking by hand:** year conversion, the number cycle, undo, the Settings window, the excluded-apps window, and badge position, distance and colors with a normal and an enlarged pointer.
+- **Windows 0.3.2 still needs checking by hand:** year conversion, the number cycle, undo, the Settings window, the excluded-apps window, and badge position, distance and colors with a normal and an enlarged pointer.
 - English text with a number in it cannot have its digits switched by the shortcut (tray menu only).
 - The icon is detailed and blurs at the 16-pixel tray size; a simplified small version would be sharper.
 - Wrong-language detection is a spelling-rules hint only; a stronger check is needed before auto-correct.
