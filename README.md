@@ -12,7 +12,7 @@ Salap works offline. It has no network access and no telemetry.
 
 ## Status
 
-Early development. Version 0.4.0 for Windows is a test build; there is no macOS app yet and no installer.
+Early development. Version 0.4.1 for Windows is a test build; there is no macOS app yet and no installer.
 
 | Part | State |
 |---|---|
@@ -72,7 +72,9 @@ tests/     engine tests
 docs/      design notes and the project log
 ```
 
-See [docs/DESIGN.md](docs/DESIGN.md) for how it fits together and [docs/LOG.md](docs/LOG.md) for decisions and progress.
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each version, [docs/DESIGN.md](docs/DESIGN.md) for how it fits together and [docs/LOG.md](docs/LOG.md) for decisions and progress.
+
+To see which version you are running, open the Salap icon's menu and choose **About Salap**.
 
 ## License
 

@@ -37,7 +37,9 @@ using std::min;
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 
-#define SALAP_VERSION L"0.4.0"
+// Keep in step with windows/Salap.rc, CMakeLists.txt, CHANGELOG.md and the
+// "what's new" text below.
+#define SALAP_VERSION L"0.4.1"
 
 namespace {
 
@@ -56,6 +58,8 @@ enum Str {
     S_EX_TITLE, S_EX_INFO, S_EX_BUILTIN, S_EX_ADD_RUNNING, S_EX_BROWSE, S_EX_REMOVE,
     S_EX_CLOSE, S_EX_NONE_RUNNING, S_YEAR_HINT, S_FEATURES_NOTE,
     S_HINT_NUMBER, S_HINT_WORDS,
+    S_ABOUT, S_ABOUT_TITLE, S_ABOUT_VERSION, S_ABOUT_DESC, S_ABOUT_NEW, S_ABOUT_CHANGES,
+    S_ABOUT_DEV, S_ABOUT_DEV_TEXT, S_ABOUT_LICENSE,
     S_COUNT
 };
 
@@ -111,6 +115,27 @@ const wchar_t* const kEn[] = {
     L"These, and amounts in Thai words, are also in the menu of the Salap icon near the clock.",
     L"Select a number first, such as 1,250 or ๑,๒๕๐.50.",
     L"Select an amount written in Thai words first, such as หนึ่งพันสองร้อยห้าสิบบาทถ้วน.",
+    L"About Salap…",
+    L"About Salap",
+    L"Version ",
+    L"Pain point killers for Thai users: fixes text typed in the wrong keyboard language, switches "
+    L"Thai and Arabic numerals, converts years and amounts, and shows the current language next to the pointer.",
+    L"What's new",
+    L"0.4.1\r\n"
+    L"• New About window with the version number and recent changes.\r\n"
+    L"\r\n"
+    L"0.4.0\r\n"
+    L"• The shortcut now does three things only: fix the language, switch numerals, and convert a year.\r\n"
+    L"• Amounts in Thai words moved to the menu, as three commands: number → Thai words, Thai words → Arabic number, Thai words → Thai number.\r\n"
+    L"\r\n"
+    L"0.3\r\n"
+    L"• A year converts only when พ.ศ. or ค.ศ. is selected with it.\r\n"
+    L"• English-keyboard text with digits in it is fixed correctly (8'gf= → คงเดช).\r\n"
+    L"• Tap twice works with Ctrl only.\r\n"
+    L"• New app icon.",
+    L"Developer",
+    L"Made by @kafaak, written with Claude.",
+    L"Free and open source under the MIT License. Salap works offline and collects nothing.",
 };
 
 const wchar_t* const kTh[] = {
@@ -165,6 +190,27 @@ const wchar_t* const kTh[] = {
     L"รายการเหล่านี้ และการแปลงจำนวนเงินเป็นตัวอักษร ใช้ได้จากเมนูของไอคอน Salap ข้างนาฬิกาด้วย",
     L"กรุณาเลือกตัวเลขก่อน เช่น 1,250 หรือ ๑,๒๕๐.50",
     L"กรุณาเลือกจำนวนเงินที่เขียนเป็นตัวอักษรก่อน เช่น หนึ่งพันสองร้อยห้าสิบบาทถ้วน",
+    L"เกี่ยวกับ Salap…",
+    L"เกี่ยวกับ Salap",
+    L"เวอร์ชัน ",
+    L"ตัวช่วยแก้ปัญหากวนใจของคนไทย: แก้ข้อความที่พิมพ์ผิดภาษา สลับเลขไทยกับเลขอารบิก "
+    L"แปลงปีและจำนวนเงิน และแสดงภาษาปัจจุบันข้างตัวชี้เมาส์",
+    L"มีอะไรใหม่",
+    L"0.4.1\r\n"
+    L"• เพิ่มหน้าต่าง “เกี่ยวกับ Salap” แสดงเลขเวอร์ชันและสิ่งที่เปลี่ยนแปลงล่าสุด\r\n"
+    L"\r\n"
+    L"0.4.0\r\n"
+    L"• ปุ่มลัดทำเพียงสามอย่าง: แก้ภาษา สลับตัวเลข และแปลงปี\r\n"
+    L"• การแปลงจำนวนเงินเป็นตัวอักษรย้ายไปอยู่ในเมนู แยกเป็นสามคำสั่ง: ตัวเลข → ตัวอักษร, ตัวอักษร → เลขอารบิก, ตัวอักษร → เลขไทย\r\n"
+    L"\r\n"
+    L"0.3\r\n"
+    L"• แปลงปีเฉพาะเมื่อเลือกคำว่า พ.ศ. หรือ ค.ศ. พร้อมกับปี\r\n"
+    L"• แก้ข้อความจากแป้นอังกฤษที่มีตัวเลขปนได้ถูกต้อง (8'gf= → คงเดช)\r\n"
+    L"• การกดสองครั้งใช้ได้กับปุ่ม Ctrl เท่านั้น\r\n"
+    L"• ไอคอนแอปใหม่",
+    L"ผู้พัฒนา",
+    L"สร้างโดย @kafaak เขียนโค้ดร่วมกับ Claude",
+    L"ซอฟต์แวร์เสรีแบบโอเพนซอร์ส (MIT License) Salap ทำงานแบบออฟไลน์และไม่เก็บข้อมูลใด ๆ",
 };
 
 static_assert(ARRAYSIZE(kEn) == S_COUNT, "English strings out of step with Str");
@@ -233,6 +279,7 @@ HWND g_main;       // hidden window that owns the tray icon, hotkeys and timer
 HWND g_badge;
 HWND g_settingsWnd;
 HWND g_excludedWnd;
+HWND g_aboutWnd;
 HWND g_lastForeground;  // last window of another app that had the focus
 Settings g_set;
 std::wstring g_iniPath;
@@ -1132,7 +1179,7 @@ void UpdateBadge() {
 // Tray icon and menu
 // ---------------------------------------------------------------------------
 
-enum MenuId { M_CYCLE = 1, M_FIX, M_NUM, M_YEAR, M_TO_WORDS, M_WORDS_AR, M_WORDS_TH, M_UNDO, M_SETTINGS, M_QUIT };
+enum MenuId { M_CYCLE = 1, M_FIX, M_NUM, M_YEAR, M_TO_WORDS, M_WORDS_AR, M_WORDS_TH, M_UNDO, M_SETTINGS, M_ABOUT, M_QUIT };
 
 HICON g_trayIcon, g_bigIcon;
 
@@ -1157,6 +1204,7 @@ void RemoveTrayIcon() {
 }
 
 void OpenSettings();
+void OpenAbout();
 
 void ShowMenu() {
     HMENU m = CreatePopupMenu();
@@ -1178,6 +1226,7 @@ void ShowMenu() {
     item(M_UNDO, S_UNDO, &g_set.undo, g_last.valid);
     AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
     item(M_SETTINGS, S_SETTINGS, nullptr, true);
+    item(M_ABOUT, S_ABOUT, nullptr, true);
     item(M_QUIT, S_QUIT, nullptr, true);
 
     POINT pt;
@@ -1197,6 +1246,7 @@ void ShowMenu() {
         case M_WORDS_TH: RunAction(K_WORDS_TH, true); break;
         case M_UNDO: RunAction(K_UNDO, true); break;
         case M_SETTINGS: OpenSettings(); break;
+        case M_ABOUT: OpenAbout(); break;
         case M_QUIT: DestroyWindow(g_main); break;
     }
 }
@@ -1213,10 +1263,11 @@ enum CtrlId {
     C_BADGE, C_POS, C_GAP, C_SAVE, C_CANCEL,
     C_SW_TH = 200,  // + palette index
     C_SW_EN = 220,
-    C_EX_LIST = 300, C_EX_ADD, C_EX_BROWSE, C_EX_REMOVE, C_EX_CLOSE
+    C_EX_LIST = 300, C_EX_ADD, C_EX_BROWSE, C_EX_REMOVE, C_EX_CLOSE,
+    C_AB_X = 400, C_AB_FACEBOOK, C_AB_GITHUB, C_AB_CLOSE
 };
 
-HFONT g_font, g_fontBold;
+HFONT g_font, g_fontBold, g_fontTitle;
 Settings g_before;                         // to put back if Settings is cancelled
 std::vector<std::wstring> g_pendingExcluded;  // edited by the excluded-apps window
 
@@ -1668,6 +1719,97 @@ void OpenExcluded(HWND owner) {
 }
 
 // ---------------------------------------------------------------------------
+// About window
+// ---------------------------------------------------------------------------
+
+const wchar_t kUrlX[] = L"https://x.com/kafaak";
+const wchar_t kUrlFacebook[] = L"https://www.facebook.com/kafaakblog";
+const wchar_t kUrlGitHub[] = L"https://github.com/kafaakblog/Salap";
+
+LRESULT CALLBACK AboutProc(HWND w, UINT msg, WPARAM wp, LPARAM lp) {
+    switch (msg) {
+        case WM_COMMAND: {
+            const wchar_t* url = nullptr;
+            switch (LOWORD(wp)) {
+                case C_AB_X: url = kUrlX; break;
+                case C_AB_FACEBOOK: url = kUrlFacebook; break;
+                case C_AB_GITHUB: url = kUrlGitHub; break;
+                case C_AB_CLOSE: case IDOK: case IDCANCEL: DestroyWindow(w); break;
+            }
+            // Opens the user's browser; Salap itself never goes online.
+            if (url) ShellExecuteW(w, L"open", url, nullptr, nullptr, SW_SHOWNORMAL);
+            return 0;
+        }
+        case WM_CTLCOLORSTATIC:
+            // Also covers the read-only "what's new" box, which would otherwise be grey.
+            SetBkMode((HDC)wp, TRANSPARENT);
+            return (LRESULT)GetSysColorBrush(COLOR_WINDOW);
+        case WM_CLOSE:
+            DestroyWindow(w);
+            return 0;
+        case WM_DESTROY:
+            g_aboutWnd = nullptr;
+            return 0;
+    }
+    return DefWindowProcW(w, msg, wp, lp);
+}
+
+void OpenAbout() {
+    if (g_aboutWnd) {
+        SetForegroundWindow(g_aboutWnd);
+        return;
+    }
+    HWND w = CreateWindowExW(WS_EX_DLGMODALFRAME, L"SalapAbout", T(S_ABOUT_TITLE),
+                             WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_CLIPCHILDREN, 0, 0, 100, 100,
+                             nullptr, nullptr, g_inst, nullptr);
+    if (!w) return;
+    g_aboutWnd = w;
+    const int L = 20, W_ = 440;
+    int y = 18;
+
+    HWND icon = Ctl(w, L"STATIC", L"", SS_ICON | SS_REALSIZEIMAGE, 0, L, y, 56, 56, -1);
+    HICON big = (HICON)LoadImageW(g_inst, MAKEINTRESOURCEW(1), IMAGE_ICON, Dp(56), Dp(56), 0);
+    if (big) SendMessageW(icon, STM_SETICON, (WPARAM)big, 0);
+    Ctl(w, L"STATIC", L"Salap  สลับ", 0, 0, L + 72, y + 2, W_ - 72, 30, -1, g_fontTitle);
+    Ctl(w, L"STATIC", (std::wstring(T(S_ABOUT_VERSION)) + SALAP_VERSION).c_str(), 0, 0, L + 72, y + 34, W_ - 72, 20, -1);
+    y += 70;
+    Ctl(w, L"STATIC", T(S_ABOUT_DESC), 0, 0, L, y, W_, 54, -1);
+    y += 62;
+
+    Ctl(w, L"STATIC", T(S_ABOUT_NEW), 0, 0, L, y, W_, 20, -1, g_fontBold);
+    y += 24;
+    Ctl(w, L"EDIT", T(S_ABOUT_CHANGES), ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_TABSTOP,
+        WS_EX_CLIENTEDGE, L, y, W_, 180, -1);
+    y += 192;
+
+    Ctl(w, L"STATIC", T(S_ABOUT_DEV), 0, 0, L, y, W_, 20, -1, g_fontBold);
+    y += 24;
+    Ctl(w, L"STATIC", T(S_ABOUT_DEV_TEXT), 0, 0, L, y, W_, 20, -1);
+    y += 28;
+    Ctl(w, L"BUTTON", L"X: @kafaak", WS_TABSTOP, 0, L, y, 130, 28, C_AB_X);
+    Ctl(w, L"BUTTON", L"Facebook: kafaakblog", WS_TABSTOP, 0, L + 138, y, 170, 28, C_AB_FACEBOOK);
+    Ctl(w, L"BUTTON", L"GitHub", WS_TABSTOP, 0, L + 316, y, 124, 28, C_AB_GITHUB);
+    y += 40;
+    Ctl(w, L"STATIC", T(S_ABOUT_LICENSE), 0, 0, L, y, W_, 38, -1);
+    y += 46;
+    HWND close = Ctl(w, L"BUTTON", T(S_EX_CLOSE), BS_DEFPUSHBUTTON | WS_TABSTOP, 0, L + W_ - 100, y, 100, 28, C_AB_CLOSE);
+    y += 28 + 18;
+
+    RECT r = {0, 0, Dp(W_ + 2 * L), Dp(y)};
+    AdjustWindowRectEx(&r, (DWORD)GetWindowLongPtrW(w, GWL_STYLE), FALSE, (DWORD)GetWindowLongPtrW(w, GWL_EXSTYLE));
+    int ww = r.right - r.left, wh = r.bottom - r.top;
+    RECT work;
+    SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0);
+    SetWindowPos(w, nullptr, work.left + (work.right - work.left - ww) / 2,
+                 work.top + max(0, (int)(work.bottom - work.top - wh) / 2), ww, wh, SWP_NOZORDER);
+    SendMessageW(w, WM_SETICON, ICON_SMALL, (LPARAM)g_trayIcon);
+    if (g_bigIcon) SendMessageW(w, WM_SETICON, ICON_BIG, (LPARAM)g_bigIcon);
+    ShowWindow(w, SW_SHOW);
+    SetForegroundWindow(w);
+    SetFocus(close);
+}
+
+// ---------------------------------------------------------------------------
 // Main window
 // ---------------------------------------------------------------------------
 
@@ -1728,6 +1870,8 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int) {
     g_font = CreateFontIndirectW(&ncm.lfMessageFont);
     ncm.lfMessageFont.lfWeight = FW_BOLD;
     g_fontBold = CreateFontIndirectW(&ncm.lfMessageFont);
+    ncm.lfMessageFont.lfHeight = MulDiv(ncm.lfMessageFont.lfHeight, 9, 5);
+    g_fontTitle = CreateFontIndirectW(&ncm.lfMessageFont);
 
     WNDCLASSEXW wc = {};
     wc.cbSize = sizeof(wc);
@@ -1745,6 +1889,9 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int) {
     RegisterClassExW(&wc);
     wc.lpfnWndProc = ExcludedProc;
     wc.lpszClassName = L"SalapExcluded";
+    RegisterClassExW(&wc);
+    wc.lpfnWndProc = AboutProc;
+    wc.lpszClassName = L"SalapAbout";
     RegisterClassExW(&wc);
 
     g_main = CreateWindowExW(0, L"SalapMain", L"Salap", 0, 0, 0, 0, 0, nullptr, nullptr, inst, nullptr);
@@ -1786,6 +1933,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int) {
 
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
+        if (g_aboutWnd && IsDialogMessageW(g_aboutWnd, &msg)) continue;
         if (g_excludedWnd && IsDialogMessageW(g_excludedWnd, &msg)) continue;
         if (g_settingsWnd && IsDialogMessageW(g_settingsWnd, &msg)) continue;
         TranslateMessage(&msg);
@@ -1802,6 +1950,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int) {
     if (g_trayIcon) DestroyIcon(g_trayIcon);
     if (g_font) DeleteObject(g_font);
     if (g_fontBold) DeleteObject(g_fontBold);
+    if (g_fontTitle) DeleteObject(g_fontTitle);
     Gdiplus::GdiplusShutdown(gdiToken);
     if (mutex) CloseHandle(mutex);
     return 0;
