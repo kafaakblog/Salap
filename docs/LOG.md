@@ -70,6 +70,7 @@ Extras
 | 2026-11-11 | Wrote the conversion engine (`core/`): layout fix, numerals, baht text, year conversion, shared-shortcut logic, UTF-8/UTF-16 helpers, and a C interface for Swift. |
 | 2026-11-11 | Wrote the engine tests (`tests/core_tests.cpp`): 295 checks, all passing on Linux, also under address and undefined-behaviour sanitizers. |
 | 2026-11-11 | Added CMake build, GitHub Actions CI for Linux, macOS and Windows, README and design notes. |
+| 2026-11-11 | Pushed the first commit (`4e935e1`) to `main`. CI passed on Linux, macOS and Windows. Cloned the repo into the local Salap folder; the tests pass there too. |
 
 ## Open items
 
