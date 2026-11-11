@@ -125,9 +125,13 @@ std::vector<std::u32string> conversion_cycle(std::u32string_view text, unsigned 
     };
 
     const bool can_fix = (features & FixLanguage) && has_letters(text);
-    if (can_fix && layout_fix_likely(text)) {
-        // Wrong-language text is gibberish; the other conversions would only
-        // produce more of it.
+    // Text in Latin letters is never a candidate for Thai numerals, years or
+    // amounts: 8'gf= is คงเดช typed on the English layout, not a number to
+    // convert. Thai-letter text gets the fix only when it looks mistyped.
+    // Either way the other conversions would only turn gibberish into more
+    // gibberish, so the fix is the whole cycle.
+    if (can_fix && (detect_layout_direction(text) == LayoutDirection::EnToTh ||
+                    layout_fix_likely(text))) {
         out.push_back(convert_layout(text));
         return out;
     }

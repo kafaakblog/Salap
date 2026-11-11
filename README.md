@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon-256.png" width="128" alt="Salap icon: a Thai letter ส and a Latin letter A on two cards, with arrows swapping them, above a keyboard"></p>
+
 # Salap (สลับ)
 
 Pain point killers for Thai users. A small macOS and Windows app that:
@@ -10,7 +12,7 @@ Salap works offline. It has no network access and no telemetry.
 
 ## Status
 
-Early development. Version 0.2.0 for Windows is a test build; there is no macOS app yet and no installer.
+Early development. Version 0.3.0 for Windows is a test build; there is no macOS app yet and no installer.
 
 | Part | State |
 |---|---|
@@ -23,7 +25,7 @@ Early development. Version 0.2.0 for Windows is a test build; there is no macOS 
 
 1. Open the latest successful run under [Actions](https://github.com/kafaakblog/Salap/actions) and download **Salap-Windows-x64**.
 2. Unzip it and run `Salap.exe`. Windows may warn that the file is unsigned; choose **More info → Run anyway**.
-3. Settings opens the first time. A blue **ส** icon appears in the tray.
+3. Settings opens the first time. The Salap icon appears in the tray.
 4. In Notepad, type `l;ylfu`, select it, and tap **Ctrl twice**. It becomes `สวัสดี`.
 5. Select `1,250` and tap Ctrl twice: `๑,๒๕๐`. Tap twice again: `หนึ่งพันสองร้อยห้าสิบบาทถ้วน`. Once more brings `1,250` back.
 

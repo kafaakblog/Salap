@@ -215,6 +215,14 @@ static void test_cycle() {
     OK(conversion_cycle(U"g-hk.0") == V{U"เข้าใจ"});
     OK(conversion_cycle(U"้ำสสน") == V{U"hello"});
     OK(conversion_cycle(U"ะ้รห รห") == V{U"this is"});
+    // Latin letters with digits: the digits are Thai-letter keys, not numbers.
+    OK(conversion_cycle(U"8'gf=") == V{U"คงเดช"});
+    OK(conversion_cycle(U"4kKk8o") == V{U"ภาษาคน"});
+    OK(conversion_cycle(U"8o") == V{U"คน"});
+    // Mostly Thai with a Latin word in it is still Thai text.
+    OK(conversion_cycle(U"ประชุมทาง Zoom 3 ครั้ง") == V{U"ประชุมทาง Zoom ๓ ครั้ง"});
+    // With the language fix switched off, Latin text falls back to the rest.
+    OK(conversion_cycle(U"Room 12", Numerals) == V{U"Room ๑๒"});
     // Numbers: other script, then year if it is one, then words.
     OK(conversion_cycle(U"1,250") == (V{U"๑,๒๕๐", U"หนึ่งพันสองร้อยห้าสิบบาทถ้วน"}));
     OK(conversion_cycle(U"2569") == (V{U"๒๕๖๙", U"2026", U"สองพันห้าร้อยหกสิบเก้าบาทถ้วน"}));

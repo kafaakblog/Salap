@@ -83,7 +83,8 @@ bool layout_fix_likely(std::u32string_view text);
 // The conversions that make sense for a selection, in the order the shared
 // shortcut should offer them. The app pastes the first, and on each further
 // press the next, then the original text again. Empty if nothing applies.
-//   wrong-language text        -> the fixed text only
+//   text in Latin letters      -> the language fix only (digits in it are keys)
+//   mistyped-looking Thai text -> the language fix only
 //   หนึ่งพัน...บาทถ้วน            -> the number
 //   text with digits           -> other digit script, year, amount in words
 std::vector<std::u32string> conversion_cycle(std::u32string_view text,

@@ -41,6 +41,9 @@ A small macOS and Windows app for Thai users that fixes text typed in the wrong 
 | 2026-11-11 | Excluded apps get their own window. Built-in terminals are listed but locked; users add apps from a list of open apps or by browsing. | Requested by @kafaak. |
 | 2026-11-11 | Badge: user-chosen corner and distance, placed against the visible cursor shape; 7 preset colors each for Thai and English. | Requested by @kafaak (badge was too far from the pointer). |
 | 2026-11-11 | Salap makes no sound when nothing is selected. | A double tap can happen by accident. Chosen by Claude. |
+| 2026-11-11 | Text in Latin letters always gets the language fix and never the number conversions, even when it contains digits. | @kafaak found `8'gf=` (คงเดช) became `๘'gf=`. Digits in English-layout text are Thai-letter keys. |
+| 2026-11-11 | Tap-twice is offered for **Ctrl only**; Alt and Shift are removed. The undo shortcut is always a key combination. | Requested by @kafaak: Windows already uses Alt and Shift taps. |
+| 2026-11-11 | App icon supplied by @kafaak (ส and A cards swapping, on blue). Used for the program file, the tray and Settings. | Provided by @kafaak. |
 
 ## Approved scope
 
@@ -81,7 +84,7 @@ Extras
 | 13 | Thai and English interface | n/a | Built, untested | Not started |
 | 14 | Fully offline | Done | Done (no network code) | Not started |
 
-"Untested" means the code compiles and is in the test build, but has not been checked by hand on Windows. @kafaak ran 0.1.0 and reported the badge sat too far from the pointer; no other results yet.
+"Untested" means the code compiles and is in the test build, but has not been confirmed by hand on Windows. Confirmed by @kafaak so far: the app runs, and the double-tap shortcut converts wrong-language text both ways in 0.2.0.
 
 ## Work done
 
@@ -103,10 +106,14 @@ Extras
 | 2026-11-11 | @kafaak tried 0.1.0 and sent feedback: double-tap shortcut, drop-down shortcut picker, one shortcut for everything, friendlier excluded-apps screen, adjustable badge position, badge colors, undo shortcut. |
 | 2026-11-11 | Engine: added `conversion_cycle`, `layout_fix_likely`, `parse_baht_text`; badge placement now works from the visible cursor shape, a corner and a gap. Tests: 52,639 checks. |
 | 2026-11-11 | Windows 0.2.0: all of the feedback above. Settings rebuilt in two columns with live badge preview; new excluded-apps window; double-tap detection on its own thread. Compiles cleanly; not yet run. |
+| 2026-11-11 | @kafaak tested 0.2.0: `4kKk8o` ⇄ `ภาษาคน` works; `8'gf=` wrongly became `๘'gf=`; asked for tap-twice on Ctrl only; supplied the app icon. |
+| 2026-11-11 | Windows 0.3.0: fixed the `8'gf=` case in the engine, limited tap-twice to Ctrl, added the icon (`windows/Salap.ico`, `assets/icon.png`) and file version details. Tests: 52,644 checks. Compiles cleanly; not yet run. |
 
 ## Open items
 
-- **Windows 0.2.0 has not been run.** It needs a hands-on test: double-tap Ctrl and the cycle in Notepad, Word and a browser; undo; the new Settings window; the excluded-apps window; badge position, distance and colors with a normal and an enlarged pointer.
+- **Windows 0.3.0 still needs checking by hand:** the number cycle, undo, the Settings window, the excluded-apps window, and badge position, distance and colors with a normal and an enlarged pointer.
+- English text with a number in it cannot have its digits switched by the shortcut (tray menu only).
+- The icon is detailed and blurs at the 16-pixel tray size; a simplified small version would be sharper.
 - Wrong-language detection is a spelling-rules hint only; a stronger check is needed before auto-correct.
 - How Windows reports the enlarged pointer size is an assumption (`CursorBaseSize` × screen scaling); to be checked on a real PC.
 - Re-selecting the converted text assumes one Left-arrow press per Thai character cluster; apps may differ.
@@ -114,4 +121,4 @@ Extras
 - macOS Thai layout assumed identical to Windows Kedmanee; to be confirmed on a Mac.
 - macOS interface will need hands-on testing on @kafaak's Mac.
 - Baht text follows the common reading rules; not yet compared against Excel's BAHTTEXT output.
-- No app icon, installer or code signing yet; Windows will show an "unknown publisher" warning.
+- No installer or code signing yet; Windows will show an "unknown publisher" warning.

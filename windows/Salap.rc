@@ -1,0 +1,30 @@
+// Salap resources: the app icon and the version details Windows shows for the file.
+#include <winver.h>
+
+1 ICON "Salap.ico"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 0,3,0,0
+PRODUCTVERSION 0,3,0,0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "kafaak"
+            VALUE "FileDescription", "Salap"
+            VALUE "FileVersion", "0.3.0"
+            VALUE "InternalName", "Salap"
+            VALUE "LegalCopyright", "Copyright (c) 2026 kafaakblog. MIT License."
+            VALUE "OriginalFilename", "Salap.exe"
+            VALUE "ProductName", "Salap"
+            VALUE "ProductVersion", "0.3.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 0x04B0
+    END
+END

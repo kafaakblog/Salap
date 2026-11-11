@@ -37,7 +37,7 @@ using std::min;
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 
-#define SALAP_VERSION L"0.2.0"
+#define SALAP_VERSION L"0.3.0"
 
 namespace {
 
@@ -75,7 +75,7 @@ const wchar_t* const kEn[] = {
     L"Convert selected text",
     L"Shortcut to convert",
     L"Shortcut to undo",
-    L"Tap twice:",
+    L"Tap Ctrl twice",
     L"Keys together:",
     L"The shortcut does these. Press it again for the next one:",
     L"Fix text typed in the wrong language",
@@ -124,7 +124,7 @@ const wchar_t* const kTh[] = {
     L"แปลงข้อความที่เลือก",
     L"ปุ่มลัดสำหรับแปลง",
     L"ปุ่มลัดสำหรับย้อนกลับ",
-    L"กดสองครั้ง:",
+    L"กด Ctrl สองครั้ง",
     L"กดพร้อมกัน:",
     L"ปุ่มลัดจะทำสิ่งเหล่านี้ กดซ้ำเพื่อเปลี่ยนเป็นแบบถัดไป:",
     L"แก้ข้อความที่พิมพ์ผิดภาษา",
@@ -163,12 +163,14 @@ static_assert(ARRAYSIZE(kTh) == S_COUNT, "Thai strings out of step with Str");
 // Settings
 // ---------------------------------------------------------------------------
 
-// A shortcut is either one modifier key tapped twice, or keys held together.
+// A shortcut is either Ctrl tapped twice, or keys held together. Alt and Shift
+// are not offered for tapping: Windows and apps already react to those keys
+// on their own (menus, language switching, Sticky Keys).
 enum { SC_DOUBLE = 1, SC_COMBO = 2 };
 struct Shortcut {
     int type;
     UINT mods;  // MOD_* flags, for SC_COMBO
-    UINT vk;    // the key; for SC_DOUBLE one of VK_CONTROL, VK_MENU, VK_SHIFT
+    UINT vk;    // the key; for SC_DOUBLE always VK_CONTROL
 };
 
 struct Color {
@@ -279,7 +281,7 @@ std::vector<std::wstring> SplitList(const std::wstring& list) {
 }
 
 bool ValidShortcut(const Shortcut& s) {
-    if (s.type == SC_DOUBLE) return s.vk == VK_CONTROL || s.vk == VK_MENU || s.vk == VK_SHIFT;
+    if (s.type == SC_DOUBLE) return s.vk == VK_CONTROL;
     if (s.type == SC_COMBO) return s.vk != 0 && (s.mods & (MOD_CONTROL | MOD_ALT | MOD_WIN)) != 0;
     return false;
 }
@@ -310,6 +312,7 @@ void LoadSettings() {
     g_set.uiLang = inRange(getInt(L"General", L"Language", d.uiLang), 0, 2, 0);
     g_set.main = getShortcut(L"Convert", d.main);
     g_set.undo = getShortcut(L"Undo", d.undo);
+    if (g_set.undo.type != SC_COMBO) g_set.undo = d.undo;  // undo is always a key combination
     g_set.features = (unsigned)getInt(L"Convert", L"Features", (int)d.features) & salap::AllFeatures;
     g_set.keepSelected = getInt(L"Convert", L"KeepSelected", d.keepSelected) != 0;
     wchar_t buf[4096];
@@ -389,7 +392,7 @@ std::wstring ShortcutText(const Shortcut& s) {
 
 // Tells the hook thread whether anything needs to watch for double taps.
 void SyncHooks() {
-    bool want = !g_settingsWnd && (g_set.main.type == SC_DOUBLE || g_set.undo.type == SC_DOUBLE);
+    bool want = !g_settingsWnd && g_set.main.type == SC_DOUBLE;
     PostThreadMessageW(g_hookThreadId, TM_SYNC_HOOKS, want, 0);
 }
 
@@ -417,10 +420,9 @@ std::wstring RegisterHotkeys() {
 //
 // Low-level hooks must answer quickly or Windows drops them, and the main
 // thread sleeps while it converts text. So the hooks live on their own thread
-// that does nothing but watch for "modifier tapped twice" and tell the main
-// window. They are installed only while a double-tap shortcut is in use. No
-// key other than Ctrl, Alt and Shift is looked at beyond "it was not one of
-// those", and nothing is stored.
+// that does nothing but watch for "Ctrl tapped twice" and tell the main
+// window. They are installed only while the double-tap shortcut is in use.
+// No key is looked at beyond "it was not Ctrl", and nothing is stored.
 // ---------------------------------------------------------------------------
 
 struct TapState {
@@ -433,12 +435,7 @@ const DWORD kTapHoldMs = 300;  // a tap is shorter than this
 const DWORD kTapGapMs = 400;   // the second tap starts within this
 
 UINT ModifierOf(DWORD vk) {
-    switch (vk) {
-        case VK_CONTROL: case VK_LCONTROL: case VK_RCONTROL: return VK_CONTROL;
-        case VK_MENU: case VK_LMENU: case VK_RMENU: return VK_MENU;
-        case VK_SHIFT: case VK_LSHIFT: case VK_RSHIFT: return VK_SHIFT;
-        default: return 0;
-    }
+    return vk == VK_CONTROL || vk == VK_LCONTROL || vk == VK_RCONTROL ? VK_CONTROL : 0;
 }
 
 LRESULT CALLBACK KeyboardHook(int code, WPARAM wp, LPARAM lp) {
@@ -1113,7 +1110,7 @@ void UpdateBadge() {
 
 enum MenuId { M_CYCLE = 1, M_FIX, M_NUM, M_YEAR, M_BAHT, M_UNDO, M_SETTINGS, M_QUIT };
 
-HICON g_trayIcon;
+HICON g_trayIcon, g_bigIcon;
 
 void AddTrayIcon() {
     NOTIFYICONDATAW nid = {};
@@ -1181,7 +1178,7 @@ void ShowMenu() {
 
 enum CtrlId {
     C_RUN = 100, C_LANG,
-    C_MAIN,       // six controls: tap radio, tap key, combo radio, modifier, modifier, key
+    C_MAIN,       // +0 tap radio, +2 combination radio, +3 modifier, +4 modifier, +5 key
     C_UNDO = C_MAIN + 6,
     C_F_FIX = C_UNDO + 6, C_F_NUM, C_F_YEAR, C_F_BAHT, C_KEEP, C_EXCLUDED,
     C_BADGE, C_POS, C_GAP, C_SAVE, C_CANCEL,
@@ -1198,7 +1195,6 @@ struct NamedValue {
     const wchar_t* name;
     UINT value;
 };
-const NamedValue kTapKeys[] = {{L"Ctrl", VK_CONTROL}, {L"Alt", VK_MENU}, {L"Shift", VK_SHIFT}};
 const NamedValue kMod1[] = {{L"Ctrl", MOD_CONTROL}, {L"Alt", MOD_ALT}, {L"Win", MOD_WIN}};
 // Always two modifiers: Ctrl+S or Alt+F alone would take over shortcuts every app uses.
 const NamedValue kMod2[] = {{L"Shift", MOD_SHIFT}, {L"Alt", MOD_ALT}, {L"Ctrl", MOD_CONTROL}};
@@ -1233,45 +1229,55 @@ HWND Combo(HWND w, int x, int y, int width, int id, const NamedValue (&items)[N]
     return c;
 }
 
-// Two rows: ( ) Tap twice: [Ctrl]     ( ) Keys together: [Ctrl] + [Shift] + [S]
-void BuildShortcut(HWND w, int x, int& y, Str label, int base, const Shortcut& sc) {
-    Ctl(w, L"STATIC", T(label), 0, 0, x, y, 380, 20, -1);
-    y += 24;
-    HWND r1 = Ctl(w, L"BUTTON", T(S_TAP_TWICE), BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 0, x + 14, y, 140, 24, base);
-    Combo(w, x + 160, y, 76, base + 1, kTapKeys, sc.type == SC_DOUBLE ? sc.vk : (UINT)VK_CONTROL);
-    y += 30;
-    HWND r2 = Ctl(w, L"BUTTON", T(S_COMBO), BS_AUTORADIOBUTTON, 0, x + 14, y, 140, 24, base + 2);
+// The modifier, modifier and key boxes of a key combination, at ids base+3..5.
+void BuildCombo(HWND w, int x, int y, int base, const Shortcut& sc) {
     const bool combo = sc.type == SC_COMBO;
     UINT m1 = MOD_CONTROL, m2 = MOD_ALT;
     if (combo) {
         // Split the modifier set over the two boxes.
         m1 = (sc.mods & MOD_CONTROL) ? MOD_CONTROL : (sc.mods & MOD_ALT) ? MOD_ALT : MOD_WIN;
         UINT rest = sc.mods & ~m1;
-        m2 = (rest & MOD_SHIFT) ? MOD_SHIFT : (rest & MOD_ALT) ? MOD_ALT : (rest & MOD_CONTROL) ? MOD_CONTROL : 0;
+        m2 = (rest & MOD_SHIFT) ? MOD_SHIFT : (rest & MOD_ALT) ? MOD_ALT : MOD_CONTROL;
     }
-    Combo(w, x + 160, y, 76, base + 3, kMod1, m1);
-    Ctl(w, L"STATIC", L"+", SS_CENTER, 0, x + 238, y + 3, 14, 20, -1);
-    Combo(w, x + 254, y, 76, base + 4, kMod2, m2);
-    Ctl(w, L"STATIC", L"+", SS_CENTER, 0, x + 332, y + 3, 14, 20, -1);
-    HWND key = Ctl(w, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, 0, x + 348, y, 62, 300, base + 5);
+    Combo(w, x, y, 76, base + 3, kMod1, m1);
+    Ctl(w, L"STATIC", L"+", SS_CENTER, 0, x + 78, y + 3, 14, 20, -1);
+    Combo(w, x + 94, y, 76, base + 4, kMod2, m2);
+    Ctl(w, L"STATIC", L"+", SS_CENTER, 0, x + 172, y + 3, 14, 20, -1);
+    HWND key = Ctl(w, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, 0, x + 188, y, 62, 300, base + 5);
     std::vector<UINT> keys = ComboKeys();
-    int sel = combo ? -1 : 18;  // S
+    int sel = 18;  // S
     for (size_t i = 0; i < keys.size(); ++i) {
         SendMessageW(key, CB_ADDSTRING, 0, (LPARAM)KeyName(keys[i]).c_str());
         if (combo && keys[i] == sc.vk) sel = (int)i;
     }
-    SendMessageW(key, CB_SETCURSEL, sel < 0 ? 0 : sel, 0);
-    SendMessageW(combo ? r2 : r1, BM_SETCHECK, BST_CHECKED, 0);
+    SendMessageW(key, CB_SETCURSEL, sel, 0);
+}
+
+// The convert shortcut: (•) Tap Ctrl twice   ( ) Keys together: [Ctrl] + [Alt] + [S]
+void BuildMainShortcut(HWND w, int x, int& y) {
+    Ctl(w, L"STATIC", T(S_SC_MAIN), 0, 0, x, y, 380, 20, -1);
+    y += 24;
+    HWND r1 = Ctl(w, L"BUTTON", T(S_TAP_TWICE), BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 0, x + 14, y, 380, 24, C_MAIN);
+    y += 28;
+    HWND r2 = Ctl(w, L"BUTTON", T(S_COMBO), BS_AUTORADIOBUTTON, 0, x + 14, y, 140, 24, C_MAIN + 2);
+    BuildCombo(w, x + 160, y, C_MAIN, g_set.main);
+    SendMessageW(g_set.main.type == SC_COMBO ? r2 : r1, BM_SETCHECK, BST_CHECKED, 0);
     y += 36;
 }
 
-Shortcut ReadShortcut(HWND w, int base) {
+// The undo shortcut is always a key combination.
+void BuildUndoShortcut(HWND w, int x, int& y) {
+    Ctl(w, L"STATIC", T(S_SC_UNDO), WS_GROUP, 0, x, y + 3, 156, 20, -1);
+    BuildCombo(w, x + 160, y, C_UNDO, g_set.undo);
+    y += 40;
+}
+
+Shortcut ReadShortcut(HWND w, int base, bool canTap) {
     auto sel = [&](int id) { return (int)SendDlgItemMessageW(w, id, CB_GETCURSEL, 0, 0); };
     Shortcut s = {};
-    if (IsDlgButtonChecked(w, base) == BST_CHECKED) {
+    if (canTap && IsDlgButtonChecked(w, base) == BST_CHECKED) {
         s.type = SC_DOUBLE;
-        int i = sel(base + 1);
-        s.vk = kTapKeys[i < 0 || i >= (int)ARRAYSIZE(kTapKeys) ? 0 : i].value;
+        s.vk = VK_CONTROL;
     } else {
         s.type = SC_COMBO;
         int a = sel(base + 3), b = sel(base + 4), k = sel(base + 5);
@@ -1301,8 +1307,8 @@ void BuildSettings(HWND w) {
 
     // ---- Left column: converting text
     header(L, S_SEC_CONVERT);
-    BuildShortcut(w, L, y, S_SC_MAIN, C_MAIN, g_set.main);
-    BuildShortcut(w, L, y, S_SC_UNDO, C_UNDO, g_set.undo);
+    BuildMainShortcut(w, L, y);
+    BuildUndoShortcut(w, L, y);
     Ctl(w, L"STATIC", T(S_FEATURES), 0, 0, L, y, LW, 20, -1);
     y += 24;
     check(L + 14, LW - 14, C_F_FIX, S_F_FIX, (g_set.features & salap::FixLanguage) != 0, WS_GROUP);
@@ -1375,8 +1381,8 @@ void SaveFromSettings(HWND w) {
     g_set.runAtLogin = checked(C_RUN);
     int lang = (int)SendDlgItemMessageW(w, C_LANG, CB_GETCURSEL, 0, 0);
     g_set.uiLang = lang < 0 ? 0 : lang;
-    g_set.main = ReadShortcut(w, C_MAIN);
-    g_set.undo = ReadShortcut(w, C_UNDO);
+    g_set.main = ReadShortcut(w, C_MAIN, true);
+    g_set.undo = ReadShortcut(w, C_UNDO, false);
     unsigned features = 0;
     if (checked(C_F_FIX)) features |= salap::FixLanguage;
     if (checked(C_F_NUM)) features |= salap::Numerals;
@@ -1487,6 +1493,7 @@ void OpenSettings() {
     SyncHooks();
     BuildSettings(g_settingsWnd);
     SendMessageW(g_settingsWnd, WM_SETICON, ICON_SMALL, (LPARAM)g_trayIcon);
+    if (g_bigIcon) SendMessageW(g_settingsWnd, WM_SETICON, ICON_BIG, (LPARAM)g_bigIcon);
     ShowWindow(g_settingsWnd, SW_SHOW);
     SetForegroundWindow(g_settingsWnd);
 }
@@ -1645,7 +1652,6 @@ LRESULT CALLBACK MainProc(HWND w, UINT msg, WPARAM wp, LPARAM lp) {
         case WM_DOUBLETAP:
             if (g_settingsWnd) return 0;
             if (g_set.main.type == SC_DOUBLE && g_set.main.vk == wp) RunAction(K_CYCLE, false);
-            else if (g_set.undo.type == SC_DOUBLE && g_set.undo.vk == wp) RunAction(K_UNDO, false);
             return 0;
         case WM_TIMER:
             UpdateBadge();
@@ -1727,7 +1733,11 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int) {
 
     LoadSettings();
     ReadPointerSize();
-    g_trayIcon = MakeTrayIcon();
+    g_trayIcon = (HICON)LoadImageW(inst, MAKEINTRESOURCEW(1), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON),
+                                   GetSystemMetrics(SM_CYSMICON), 0);
+    g_bigIcon = (HICON)LoadImageW(inst, MAKEINTRESOURCEW(1), IMAGE_ICON, GetSystemMetrics(SM_CXICON),
+                                  GetSystemMetrics(SM_CYICON), 0);
+    if (!g_trayIcon) g_trayIcon = MakeTrayIcon();  // built without the icon resource
     g_taskbarCreated = RegisterWindowMessageW(L"TaskbarCreated");
     AddTrayIcon();
 

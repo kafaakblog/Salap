@@ -53,14 +53,17 @@ A ค.ศ. result is always written in Arabic digits, whatever the พ.ศ. year
 
 | Selection | Offered, in order |
 |---|---|
-| Looks typed in the wrong language | the language fix only |
+| Mostly Latin letters | the language fix only |
+| Thai letters that look mistyped | the language fix only |
 | An amount in Thai words | the number |
 | Contains digits | other digit script, year (if it has one), amount in words (if it is a number) |
 | Anything else with letters | the language fix |
 
 Features the user has switched off are left out.
 
-"Looks typed in the wrong language" is `layout_fix_likely`: it counts Thai spelling impossibilities (a tone mark with no consonant, a leading vowel with nothing after it) and un-English word shapes (punctuation between letters, no vowel), in the text and in its converted form, and says yes when converting makes the count go down. It is a hint, not a dictionary: Thai-layout text that happens to be spellable, like `ไนพสก` for `world`, is not recognised, though it still gets the fix when nothing else applies. Auto-correct will need something stronger.
+Text in Latin letters is always treated as Thai typed on the English layout, because its digits are Thai-letter keys: `8'gf=` is `คงเดช`, not a number. The cost is that real English with a number in it ("Room 12") cannot have its digits switched with the shortcut; the tray menu's numerals command still does that.
+
+"Look mistyped" is `layout_fix_likely`: it counts Thai spelling impossibilities (a tone mark with no consonant, a leading vowel with nothing after it) and un-English word shapes (punctuation between letters, no vowel), in the text and in its converted form, and says yes when converting makes the count go down. It is a hint, not a dictionary: Thai-layout text that happens to be spellable, like `ไนพสก` for `world`, is not recognised, though it still gets the fix when nothing else applies. Auto-correct will need something stronger.
 
 ### Thai words back to a number
 
@@ -89,7 +92,7 @@ The temporary text is marked so that clipboard history and cloud clipboard ignor
 
 **Undo.** If the converted text is still selected, the undo shortcut pastes the original back. If it is not, Salap sends Ctrl+Z to the app instead, within 30 seconds of the conversion.
 
-**Shortcuts** are either a modifier key (Ctrl, Alt or Shift) tapped twice, or two modifiers and a key held together. Combinations use `RegisterHotKey`. Double taps need a low-level keyboard hook, which runs on its own thread so that it always answers quickly; a mouse hook on the same thread cancels a tap when a button is clicked, so Ctrl+click twice does not count. The hooks are installed only while a double-tap shortcut is chosen, look only at whether a key is Ctrl, Alt or Shift, and store nothing. Combinations always have two modifiers so that Salap cannot take over Ctrl+S or Alt+F.
+**Shortcuts.** The convert shortcut is either Ctrl tapped twice, or two modifiers and a key held together; the undo shortcut is always a combination. Alt and Shift are not offered for tapping, because Windows and apps already react to those keys on their own. Combinations use `RegisterHotKey`. Double taps need a low-level keyboard hook, which runs on its own thread so that it always answers quickly; a mouse hook on the same thread cancels a tap when a button is clicked, so Ctrl+click twice does not count. The hooks are installed only while a double-tap shortcut is chosen, look only at whether a key is Ctrl, and store nothing. Combinations always have two modifiers so that Salap cannot take over Ctrl+S or Alt+F.
 
 **Excluded apps.** Ctrl+C interrupts programs in a terminal, so console windows are always skipped and common terminal programs are built into the exclusion list and cannot be removed. Users add their own from a list of open apps or by browsing for a program.
 
@@ -105,5 +108,5 @@ Defaults: Ctrl tapped twice converts, Ctrl+Alt+Z undoes.
 
 1. Hands-on testing of the Windows build, then fixes.
 2. **Wrong-language detection** in the core: decide whether a typed word is gibberish on its layout and sensible on the other. Needed for auto-correct.
-3. Windows extras: language per app, learned words, hiding the badge over full-screen apps, an app icon, an installer.
+3. Windows extras: language per app, learned words, hiding the badge over full-screen apps, an installer.
 4. **macOS app**: the same features, in Swift.

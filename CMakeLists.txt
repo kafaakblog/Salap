@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(Salap VERSION 0.2.0 LANGUAGES CXX)
+project(Salap VERSION 0.3.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -30,7 +30,10 @@ target_link_libraries(salap_core_tests PRIVATE salap_core)
 add_test(NAME core COMMAND salap_core_tests)
 
 if(WIN32)
-  add_executable(Salap WIN32 windows/Salap.cpp)
+  enable_language(RC)
+  add_executable(Salap WIN32 windows/Salap.cpp windows/Salap.rc)
+  # So the resource compiler finds Salap.ico next to Salap.rc.
+  target_include_directories(Salap PRIVATE windows)
   target_link_libraries(Salap PRIVATE salap_core gdiplus comctl32 comdlg32 shell32 user32 gdi32 advapi32)
   if(MINGW)
     target_link_options(Salap PRIVATE -municode -static)
