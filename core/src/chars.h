@@ -1,6 +1,9 @@
 // Small character classification helpers shared by the core sources.
 #pragma once
 
+#include <string>
+#include <string_view>
+
 namespace salap::detail {
 
 inline bool is_ascii_digit(char32_t c) { return c >= U'0' && c <= U'9'; }
@@ -19,5 +22,8 @@ inline bool is_ascii_letter(char32_t c) {
 inline bool is_thai_letter(char32_t c) {
     return c >= 0x0E01 && c <= 0x0E4E && c != 0x0E3F;
 }
+
+// convert_years, also reporting how many years went each way.
+std::u32string convert_years_counted(std::u32string_view text, int* to_ce, int* to_be);
 
 }  // namespace salap::detail

@@ -138,12 +138,23 @@ std::vector<std::u32string> conversion_cycle(std::u32string_view text, unsigned 
 
     std::u32string tmp;
     if ((features & BahtText) && parse_baht_text(text, tmp)) add(tmp);
+    // A year written with a dotted label (พ.ศ. 2569) is a clear request, so it
+    // goes first. Without the dots (พศ 2569) it could be something else, such
+    // as a licence plate, so there the digit switch goes first and the year
+    // conversion is the next press.
+    const bool dotted = text.find(U"พ.ศ") != std::u32string_view::npos ||
+                        text.find(U"ค.ศ") != std::u32string_view::npos;
+    auto add_years = [&]() {
+        if (!(features & Years)) return;
+        int to_ce = 0, to_be = 0;
+        std::u32string y = detail::convert_years_counted(text, &to_ce, &to_be);
+        if (to_ce + to_be) add(y);
+        // A new พ.ศ. year is often wanted in Thai digits; offer that next.
+        if (to_be && !to_ce) add(convert_numerals(y, NumeralDirection::ToThai));
+    };
+    if (dotted) add_years();
     if (features & Numerals) add(convert_numerals(text));
-    if (features & Years) {
-        int n = 0;
-        std::u32string y = convert_years(text, &n);
-        if (n) add(y);
-    }
+    if (!dotted) add_years();
     if ((features & BahtText) && baht_text(text, tmp)) add(tmp);
 
     // Nothing else applies: trust the user and offer the language fix anyway.

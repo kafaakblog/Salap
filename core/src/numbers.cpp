@@ -280,71 +280,109 @@ bool parse_baht_text(std::u32string_view words, std::u32string& number_out) {
 
 // ---- Years ----------------------------------------------------------------------
 
-std::u32string convert_years(std::u32string_view text, int* converted) {
-    static const std::u32string_view kBE = U"พ.ศ.";
-    static const std::u32string_view kCE = U"ค.ศ.";
+namespace {
 
+const char32_t kPho = 0x0E1E;  // พ
+const char32_t kKho = 0x0E04;  // ค
+const char32_t kSo = 0x0E28;   // ศ
+
+bool is_blank(char32_t c) { return c == U' ' || c == 0x00A0 || c == U'\t'; }
+
+// Looks backwards from `end` for an era label: พ.ศ. พ.ศ พศ. พศ (or the same
+// with ค), optionally followed by spaces. Returns the index of its first
+// letter, or npos.
+size_t era_label_before(const std::u32string& s, size_t end) {
+    size_t p = end;
+    while (p > 0 && is_blank(s[p - 1])) --p;
+    if (p > 0 && s[p - 1] == U'.') --p;
+    if (p == 0 || s[p - 1] != kSo) return std::u32string::npos;
+    --p;
+    if (p > 0 && s[p - 1] == U'.') --p;
+    if (p == 0 || (s[p - 1] != kPho && s[p - 1] != kKho)) return std::u32string::npos;
+    --p;
+    // "พศ" at the end of a longer Thai word is not a label.
+    if (p > 0 && detail::is_thai_letter(s[p - 1])) return std::u32string::npos;
+    return p;
+}
+
+// A run of exactly four digits in one script starting at i, not part of a
+// longer or decimal number. Returns its value, or -1.
+int four_digit_year(const std::u32string& s, size_t i) {
+    size_t n = s.size();
+    if (i + 4 > n) return -1;
+    bool thai = is_thai_digit(s[i]);
+    int value = 0;
+    for (size_t k = i; k < i + 4; ++k) {
+        if (!is_digit(s[k]) || is_thai_digit(s[k]) != thai) return -1;
+        value = value * 10 + digit_value(s[k]);
+    }
+    if (i + 4 < n && is_digit(s[i + 4])) return -1;
+    if (i + 5 < n && (s[i + 4] == U',' || s[i + 4] == U'.') && is_digit(s[i + 5])) return -1;
+    return value;
+}
+
+}  // namespace
+
+namespace detail {
+
+std::u32string convert_years_counted(std::u32string_view text, int* to_ce, int* to_be) {
     std::u32string out(text);
-    int count = 0;
-    size_t n = out.size();
+    int n_ce = 0, n_be = 0;
     bool any_thai_digit = false;
     for (char32_t c : out)
         if (is_thai_digit(c)) any_thai_digit = true;
-    size_t i = 0;
-    while (i < n) {
-        if (!is_digit(out[i])) {
-            ++i;
-            continue;
+
+    auto write_year = [&](size_t at, int value, bool thai) {
+        char32_t zero = thai ? char32_t(0x0E50) : U'0';
+        for (size_t k = at + 4; k-- > at;) {
+            out[k] = zero + (value % 10);
+            value /= 10;
         }
-        size_t start = i;
-        bool thai = is_thai_digit(out[i]);
-        bool mixed = false;
-        while (i < n && is_digit(out[i])) {
-            if (is_thai_digit(out[i]) != thai) mixed = true;
-            ++i;
-        }
-        if (i - start != 4 || mixed) continue;
+    };
 
-        // Skip parts of larger numbers: 12,2569 or 1.2569 or 2569.50 or 2569,000.
-        auto sep = [](char32_t c) { return c == U',' || c == U'.'; };
-        if (start >= 2 && sep(out[start - 1]) && is_digit(out[start - 2])) continue;
-        if (i + 1 < n && sep(out[i]) && is_digit(out[i + 1])) continue;
+    for (size_t i = 0; i < out.size(); ++i) {
+        if (!is_digit(out[i]) || (i > 0 && is_digit(out[i - 1]))) continue;  // start of a digit run
+        size_t label = era_label_before(out, i);
+        if (label == std::u32string::npos) continue;
+        int value = four_digit_year(out, i);
+        if (value < 0) continue;
 
-        int value = 0;
-        for (size_t k = start; k < i; ++k) value = value * 10 + digit_value(out[k]);
-
-        int result;
-        bool be_to_ce;
-        if (value >= 2400 && value <= 2700) {
-            result = value - 543;
-            be_to_ce = true;
-        } else if (value >= 1857 && value <= 2157) {
-            result = value + 543;
-            be_to_ce = false;
-        } else {
-            continue;
-        }
-
+        const bool be_to_ce = out[label] == kPho;
+        const int shift = be_to_ce ? -543 : 543;
+        if (value + shift < 1 || value + shift > 9999) continue;
         // ค.ศ. years are always written in Arabic digits. พ.ศ. years follow
         // the text around them: Thai digits if the text uses any.
-        bool thai_out = be_to_ce ? false : (thai || any_thai_digit);
-        char32_t zero = thai_out ? char32_t(0x0E50) : U'0';
-        for (size_t k = i; k-- > start;) {
-            out[k] = zero + (result % 10);
-            result /= 10;
-        }
-        ++count;
+        const bool thai_out = !be_to_ce && any_thai_digit;
 
-        // Swap an era label that sits right before the year.
-        size_t p = start;
-        while (p > 0 && (out[p - 1] == U' ' || out[p - 1] == 0x00A0)) --p;
-        if (p >= 4) {
-            std::u32string_view label(out.data() + p - 4, 4);
-            if (be_to_ce && label == kBE) out.replace(p - 4, 4, kCE);
-            else if (!be_to_ce && label == kCE) out.replace(p - 4, 4, kBE);
+        write_year(i, value + shift, thai_out);
+        out[label] = be_to_ce ? kKho : kPho;
+        (be_to_ce ? n_ce : n_be)++;
+
+        // A range: พ.ศ. 2540-2569. The second year has no label of its own.
+        size_t j = i + 4;
+        while (j < out.size() && is_blank(out[j])) ++j;
+        if (j < out.size() && (out[j] == U'-' || out[j] == 0x2013 || out[j] == 0x2014)) {
+            ++j;
+            while (j < out.size() && is_blank(out[j])) ++j;
+            int second = four_digit_year(out, j);
+            if (second >= 0 && second + shift >= 1 && second + shift <= 9999) {
+                write_year(j, second + shift, thai_out);
+                (be_to_ce ? n_ce : n_be)++;
+                i = j + 3;
+            }
         }
     }
-    if (converted) *converted = count;
+    if (to_ce) *to_ce = n_ce;
+    if (to_be) *to_be = n_be;
+    return out;
+}
+
+}  // namespace detail
+
+std::u32string convert_years(std::u32string_view text, int* converted) {
+    int a = 0, b = 0;
+    std::u32string out = detail::convert_years_counted(text, &a, &b);
+    if (converted) *converted = a + b;
     return out;
 }
 

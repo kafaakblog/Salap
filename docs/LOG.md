@@ -23,7 +23,7 @@ A small macOS and Windows app for Thai users that fixes text typed in the wrong 
 | 2026-11-11 | Architecture: one shared C++17 engine with no dependencies, a Win32 C++ app for Windows and a Swift/AppKit app for macOS. | Small native apps with direct access to keyboard and pointer APIs; the engine is testable on any machine. Chosen by Claude. |
 | 2026-11-11 | Keyboard layouts: US QWERTY ⇄ Thai Kedmanee only. | Kedmanee is the standard Thai layout. Pattachote can be added later. |
 | 2026-11-11 | Automatic numeral toggle normalises mixed text to one script (Arabic present → all Thai, otherwise all Arabic). | A document usually wants one script throughout. Chosen by Claude. |
-| 2026-11-11 | Year conversion reads 2400–2700 as พ.ศ. and 1857–2157 as ค.ศ. | The ranges cover the same years and cannot be confused. Chosen by Claude. |
+| 2026-11-11 | ~~Year conversion reads 2400–2700 as พ.ศ. and 1857–2157 as ค.ศ.~~ Superseded: see "Year conversion needs the era label". | The ranges cover the same years and cannot be confused. Chosen by Claude. |
 | 2026-11-11 | A ค.ศ. year is always written in Arabic digits: พ.ศ. ๒๕๖๙ → ค.ศ. 2026. | Requested by @kafaak. |
 | 2026-11-11 | A พ.ศ. year is written in Thai digits when the selected text has any Thai digit, otherwise in Arabic digits. | So the year matches the document around it. Chosen by Claude; to be confirmed by @kafaak. |
 | 2026-11-11 | Pushing straight to `main` while the project is being set up. | Solo project, empty repo. Chosen by Claude; @kafaak can ask for branches and pull requests. |
@@ -44,6 +44,10 @@ A small macOS and Windows app for Thai users that fixes text typed in the wrong 
 | 2026-11-11 | Text in Latin letters always gets the language fix and never the number conversions, even when it contains digits. | @kafaak found `8'gf=` (คงเดช) became `๘'gf=`. Digits in English-layout text are Thai-letter keys. |
 | 2026-11-11 | Tap-twice is offered for **Ctrl only**; Alt and Shift are removed. The undo shortcut is always a key combination. | Requested by @kafaak: Windows already uses Alt and Shift taps. |
 | 2026-11-11 | App icon supplied by @kafaak (ส and A cards swapping, on blue). Used for the program file, the tray and Settings. | Provided by @kafaak. |
+| 2026-11-11 | **Year conversion needs the era label.** A year converts only when พ.ศ. or ค.ศ. is selected with it; a bare number is never a year. Supersedes the 2400–2700 / 1857–2157 range rule. | Requested by @kafaak after year conversion did not behave as expected. |
+| 2026-11-11 | Accepted label spellings: พ.ศ. พ.ศ พศ. พศ (and with ค), with or without a space, Arabic or Thai digits. The label keeps its style when swapped. | Scenarios listed by @kafaak. |
+| 2026-11-11 | Keep the year feature. Dotted labels convert on the first press; undotted ones (พศ 2569) switch digits first and convert the year on the next press. | @kafaak offered to drop the feature over cases like licence plates. The dotted form is unambiguous, the undotted form is only one press further away, and the feature can be unticked in Settings. Chosen by Claude. |
+| 2026-11-11 | Settings and the tray menu say that พ.ศ. or ค.ศ. must be selected with the year; the tray command explains this when it finds no labelled year. | Requested by @kafaak. |
 
 ## Approved scope
 
@@ -108,10 +112,12 @@ Extras
 | 2026-11-11 | Windows 0.2.0: all of the feedback above. Settings rebuilt in two columns with live badge preview; new excluded-apps window; double-tap detection on its own thread. Compiles cleanly; not yet run. |
 | 2026-11-11 | @kafaak tested 0.2.0: `4kKk8o` ⇄ `ภาษาคน` works; `8'gf=` wrongly became `๘'gf=`; asked for tap-twice on Ctrl only; supplied the app icon. |
 | 2026-11-11 | Windows 0.3.0: fixed the `8'gf=` case in the engine, limited tap-twice to Ctrl, added the icon (`windows/Salap.ico`, `assets/icon.png`) and file version details. Tests: 52,644 checks. Compiles cleanly; not yet run. |
+| 2026-11-11 | @kafaak tested 0.3.0: year conversion did not work as expected. Asked that it require the พ.ศ. / ค.ศ. label and listed eight spellings to support. |
+| 2026-11-11 | Windows 0.3.1: year conversion rewritten around the label, with ranges; cycle order updated; hint text in Settings and on the tray command. Tests: 52,666 checks. Compiles cleanly; not yet run. |
 
 ## Open items
 
-- **Windows 0.3.0 still needs checking by hand:** the number cycle, undo, the Settings window, the excluded-apps window, and badge position, distance and colors with a normal and an enlarged pointer.
+- **Windows 0.3.1 still needs checking by hand:** year conversion, the number cycle, undo, the Settings window, the excluded-apps window, and badge position, distance and colors with a normal and an enlarged pointer.
 - English text with a number in it cannot have its digits switched by the shortcut (tray menu only).
 - The icon is detailed and blurs at the 16-pixel tray size; a simplified small version would be sharper.
 - Wrong-language detection is a spelling-rules hint only; a stronger check is needed before auto-correct.

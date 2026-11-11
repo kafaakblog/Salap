@@ -149,32 +149,53 @@ static void test_baht_text() {
 
 static void test_years() {
     int n = -1;
-    EQ(convert_years(U"2569", &n), U"2026");
+    // Every way of writing the label, with Arabic and Thai digits.
+    EQ(convert_years(U"พ.ศ. 2569", &n), U"ค.ศ. 2026");
     OK(n == 1);
-    EQ(convert_years(U"2026"), U"2569");
-    // ค.ศ. is always written in Arabic digits.
-    EQ(convert_years(U"๒๕๖๙"), U"2026");
+    EQ(convert_years(U"พ.ศ.2569"), U"ค.ศ.2026");
+    EQ(convert_years(U"พศ2569"), U"คศ2026");
+    EQ(convert_years(U"พศ 2569"), U"คศ 2026");
     EQ(convert_years(U"พ.ศ. ๒๕๖๙"), U"ค.ศ. 2026");
+    EQ(convert_years(U"พ.ศ.๒๕๖๙"), U"ค.ศ.2026");
+    EQ(convert_years(U"พศ๒๕๖๙"), U"คศ2026");
+    EQ(convert_years(U"พศ ๒๕๖๙"), U"คศ 2026");
+    EQ(convert_years(U"พ.ศ 2569"), U"ค.ศ 2026");
+    EQ(convert_years(U"พศ. 2569"), U"คศ. 2026");
+    // And back.
+    EQ(convert_years(U"ค.ศ. 2026"), U"พ.ศ. 2569");
+    EQ(convert_years(U"ค.ศ.2026"), U"พ.ศ.2569");
+    EQ(convert_years(U"คศ2026"), U"พศ2569");
+    EQ(convert_years(U"คศ 2026"), U"พศ 2569");
     EQ(convert_years(U"ค.ศ. ๒๐๒๖"), U"พ.ศ. ๒๕๖๙");
     // พ.ศ. follows the surrounding text: Thai digits if it uses any.
     EQ(convert_years(U"วันที่ ๑๑ พฤศจิกายน ค.ศ. 2026"), U"วันที่ ๑๑ พฤศจิกายน พ.ศ. ๒๕๖๙");
     EQ(convert_years(U"วันที่ 11 พฤศจิกายน ค.ศ. 2026"), U"วันที่ 11 พฤศจิกายน พ.ศ. 2569");
+    // ค.ศ. is always in Arabic digits.
     EQ(convert_years(U"วันที่ ๑๑ พฤศจิกายน พ.ศ. ๒๕๖๙"), U"วันที่ ๑๑ พฤศจิกายน ค.ศ. 2026");
-    EQ(convert_years(U"ค.ศ.2026"), U"พ.ศ.2569");
-    EQ(convert_years(U"วันที่ 11 พฤศจิกายน 2569"), U"วันที่ 11 พฤศจิกายน 2026");
-    EQ(convert_years(U"2540-2569", &n), U"1997-2026");
+    // Ranges and several years.
+    EQ(convert_years(U"พ.ศ. 2540-2569", &n), U"ค.ศ. 1997-2026");
     OK(n == 2);
-    // Not years.
-    EQ(convert_years(U"12345", &n), U"12345");
+    EQ(convert_years(U"พ.ศ. 2540 – 2569"), U"ค.ศ. 1997 – 2026");
+    EQ(convert_years(U"พ.ศ. 2475 และ พ.ศ. 2569", &n), U"ค.ศ. 1932 และ ค.ศ. 2026");
+    OK(n == 2);
+    EQ(convert_years(U"ปี พ.ศ. 2569."), U"ปี ค.ศ. 2026.");
+    // No label, no conversion: the number alone could be anything.
+    EQ(convert_years(U"2569", &n), U"2569");
     OK(n == 0);
-    EQ(convert_years(U"3000"), U"3000");
-    EQ(convert_years(U"1,2569"), U"1,2569");
-    EQ(convert_years(U"2569.50"), U"2569.50");
-    EQ(convert_years(U"2,569,000"), U"2,569,000");
-    EQ(convert_years(U"256"), U"256");
-    EQ(convert_years(U"25๖๙"), U"25๖๙");
-    // A full stop after the year is still a year.
-    EQ(convert_years(U"ปี 2569."), U"ปี 2026.");
+    EQ(convert_years(U"๒๕๖๙"), U"๒๕๖๙");
+    EQ(convert_years(U"ปี 2569"), U"ปี 2569");
+    EQ(convert_years(U"วันที่ 11 พฤศจิกายน 2569"), U"วันที่ 11 พฤศจิกายน 2569");
+    // A label, but not a year after it.
+    EQ(convert_years(U"พ.ศ. 12345"), U"พ.ศ. 12345");
+    EQ(convert_years(U"พ.ศ. 256"), U"พ.ศ. 256");
+    EQ(convert_years(U"พ.ศ. 2569.50"), U"พ.ศ. 2569.50");
+    EQ(convert_years(U"พ.ศ. 2,569"), U"พ.ศ. 2,569");
+    EQ(convert_years(U"พ.ศ. 25๖๙"), U"พ.ศ. 25๖๙");
+    EQ(convert_years(U"พ.ศ. 0100"), U"พ.ศ. 0100");
+    // Not a label.
+    EQ(convert_years(U"เทพศ 2569"), U"เทพศ 2569");
+    EQ(convert_years(U"ศ. 2569"), U"ศ. 2569");
+    EQ(convert_years(U"พ.ศ."), U"พ.ศ.");
 }
 
 static std::u32string unbaht(const char32_t* s) {
@@ -225,11 +246,17 @@ static void test_cycle() {
     OK(conversion_cycle(U"Room 12", Numerals) == V{U"Room ๑๒"});
     // Numbers: other script, then year if it is one, then words.
     OK(conversion_cycle(U"1,250") == (V{U"๑,๒๕๐", U"หนึ่งพันสองร้อยห้าสิบบาทถ้วน"}));
-    OK(conversion_cycle(U"2569") == (V{U"๒๕๖๙", U"2026", U"สองพันห้าร้อยหกสิบเก้าบาทถ้วน"}));
-    OK(conversion_cycle(U"๒๕๖๙") == (V{U"2569", U"2026", U"สองพันห้าร้อยหกสิบเก้าบาทถ้วน"}));
+    OK(conversion_cycle(U"2569") == (V{U"๒๕๖๙", U"สองพันห้าร้อยหกสิบเก้าบาทถ้วน"}));
+    // A year with its label: the year conversion comes first.
+    OK(conversion_cycle(U"พ.ศ. 2569") == (V{U"ค.ศ. 2026", U"พ.ศ. ๒๕๖๙"}));
+    OK(conversion_cycle(U"พ.ศ. ๒๕๖๙") == (V{U"ค.ศ. 2026", U"พ.ศ. 2569"}));
+    // Without dots it might not be a year (a licence plate, say): digits first.
+    OK(conversion_cycle(U"พศ2569") == (V{U"พศ๒๕๖๙", U"คศ2026"}));
+    OK(conversion_cycle(U"พศ ๒๕๖๙") == (V{U"พศ 2569", U"คศ 2026"}));
+    OK(conversion_cycle(U"ค.ศ. 2026") == (V{U"พ.ศ. 2569", U"พ.ศ. ๒๕๖๙", U"ค.ศ. ๒๐๒๖"}));
     // Correct Thai with digits is not turned into gibberish.
     OK(conversion_cycle(U"ข้อ 3 วรรค 2") == V{U"ข้อ ๓ วรรค ๒"});
-    OK(conversion_cycle(U"วันที่ ๑๑ พ.ศ. ๒๕๖๙") == (V{U"วันที่ 11 พ.ศ. 2569", U"วันที่ ๑๑ ค.ศ. 2026"}));
+    OK(conversion_cycle(U"วันที่ ๑๑ พ.ศ. ๒๕๖๙") == (V{U"วันที่ ๑๑ ค.ศ. 2026", U"วันที่ 11 พ.ศ. 2569"}));
     // Amount in words goes back to the number.
     OK(conversion_cycle(U"หนึ่งพันสองร้อยห้าสิบบาทถ้วน") == V{U"1,250"});
     // Correct text with nothing else to do: the fix is still offered.
@@ -242,7 +269,8 @@ static void test_cycle() {
     OK(conversion_cycle(U"1,250", Numerals) == V{U"๑,๒๕๐"});
     OK(conversion_cycle(U"1,250", BahtText) == V{U"หนึ่งพันสองร้อยห้าสิบบาทถ้วน"});
     OK(conversion_cycle(U"l;ylfu", Numerals | Years | BahtText).empty());
-    OK(conversion_cycle(U"2569", FixLanguage | Years) == V{U"2026"});
+    OK(conversion_cycle(U"พ.ศ. 2569", FixLanguage | Years) == V{U"ค.ศ. 2026"});
+    OK(conversion_cycle(U"พ.ศ. 2569", Numerals) == V{U"พ.ศ. ๒๕๖๙"});
 
     OK(layout_fix_likely(U"l;ylfu"));
     OK(layout_fix_likely(U"้ำสสน"));
@@ -351,8 +379,8 @@ static void test_c_api() {
     salap_free(s);
     OK(salap_baht_text("x") == nullptr);
     int n = 0;
-    s = salap_convert_years("2569", &n);
-    OK(s && std::strcmp(s, "2026") == 0 && n == 1);
+    s = salap_convert_years(to_utf8(U"พศ2569").c_str(), &n);
+    OK(s && std::strcmp(s, to_utf8(U"คศ2026").c_str()) == 0 && n == 1);
     salap_free(s);
     s = salap_parse_baht_text(to_utf8(U"ยี่สิบเอ็ดบาทถ้วน").c_str());
     OK(s && std::strcmp(s, "21") == 0);

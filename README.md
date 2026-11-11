@@ -12,7 +12,7 @@ Salap works offline. It has no network access and no telemetry.
 
 ## Status
 
-Early development. Version 0.3.0 for Windows is a test build; there is no macOS app yet and no installer.
+Early development. Version 0.3.1 for Windows is a test build; there is no macOS app yet and no installer.
 
 | Part | State |
 |---|---|
@@ -45,6 +45,8 @@ Salap skips terminals, because it reads the selection with Ctrl+C. Settings are 
 | Thai words → number | `หนึ่งพันสองร้อยห้าสิบบาทถ้วน` → `1,250` |
 | พ.ศ. → ค.ศ. | `พ.ศ. ๒๕๖๙` → `ค.ศ. 2026` |
 | ค.ศ. → พ.ศ. | `ค.ศ. 2026` → `พ.ศ. 2569` (or `๒๕๖๙` when the text around it uses Thai digits) |
+
+A year is converted only when **พ.ศ.** or **ค.ศ.** is selected with it. `2569` on its own is treated as a number. The label can be written `พ.ศ.`, `พ.ศ`, `พศ.` or `พศ`, with or without a space.
 
 ## Build and test the engine
 

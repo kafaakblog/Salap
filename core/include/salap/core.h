@@ -53,11 +53,14 @@ std::u32string convert_numerals(std::u32string_view text,
 bool baht_text(std::u32string_view number, std::u32string& out);
 
 // ---- Buddhist Era <-> Common Era years ------------------------------------
-// Converts every standalone four-digit year: 2400-2700 is read as พ.ศ. and
-// becomes ค.ศ.; 1857-2157 is read as ค.ศ. and becomes พ.ศ. A ค.ศ. result is
-// always in Arabic digits; a พ.ศ. result is in Thai digits if the text has any
-// Thai digit, otherwise Arabic. A "พ.ศ." / "ค.ศ." label right before the year
-// is swapped too.
+// Converts a four-digit year that has its era label in front of it. The
+// label may be written พ.ศ. พ.ศ พศ. or พศ (and the same with ค), with or
+// without a space before the year; the label is swapped and keeps its style.
+// A year with no label is left alone: 2569 on its own is just a number.
+//   พ.ศ. ๒๕๖๙ -> ค.ศ. 2026     พศ2569 -> คศ2026     ค.ศ. 2026 -> พ.ศ. 2569
+// A ค.ศ. result is always in Arabic digits; a พ.ศ. result is in Thai digits
+// if the text has any Thai digit, otherwise Arabic. In a range such as
+// พ.ศ. 2540-2569 both years are converted.
 // `converted`, if given, receives how many years were changed.
 std::u32string convert_years(std::u32string_view text, int* converted = nullptr);
 

@@ -4,8 +4,8 @@
 1 ICON "Salap.ico"
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION 0,3,0,0
-PRODUCTVERSION 0,3,0,0
+FILEVERSION 0,3,1,0
+PRODUCTVERSION 0,3,1,0
 FILEOS VOS_NT_WINDOWS32
 FILETYPE VFT_APP
 BEGIN
@@ -15,12 +15,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "kafaak"
             VALUE "FileDescription", "Salap"
-            VALUE "FileVersion", "0.3.0"
+            VALUE "FileVersion", "0.3.1"
             VALUE "InternalName", "Salap"
             VALUE "LegalCopyright", "Copyright (c) 2026 kafaakblog. MIT License."
             VALUE "OriginalFilename", "Salap.exe"
             VALUE "ProductName", "Salap"
-            VALUE "ProductVersion", "0.3.0"
+            VALUE "ProductVersion", "0.3.1"
         END
     END
     BLOCK "VarFileInfo"

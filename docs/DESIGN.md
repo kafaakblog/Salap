@@ -43,9 +43,13 @@ Follows the usual reading rules: `เอ็ด` for a final 1 after any higher d
 
 ### Years
 
-A four-digit number from 2400 to 2700 is read as พ.ศ.; from 1857 to 2157 as ค.ศ. The two ranges are the same years and do not overlap, so the direction is never ambiguous. Numbers that are part of a larger figure (`2,569,000`, `2569.50`) are skipped.
+A year is converted only when its era label is in the selection, directly before a four-digit number. The label can be written `พ.ศ.`, `พ.ศ`, `พศ.` or `พศ` (and the same with ค), with or without a space; it is swapped and keeps its style, so `พศ2569` becomes `คศ2026`. In a range such as `พ.ศ. 2540-2569` both years are converted.
 
-A ค.ศ. result is always written in Arabic digits, whatever the พ.ศ. year used. A พ.ศ. result is written in Thai digits when the selected text contains any Thai digit, and in Arabic digits otherwise, so it matches the document it sits in.
+A bare number is never treated as a year. `2569` could be a year, an amount or a quantity, and the label is the only reliable sign.
+
+A ค.ศ. result is always written in Arabic digits. A พ.ศ. result is written in Thai digits when the selected text contains any Thai digit, and in Arabic digits otherwise.
+
+In the shortcut's cycle, a dotted label (`พ.ศ. 2569`) puts the year conversion first. An undotted one (`พศ 2569`) could be something else, such as a licence plate, so the digit switch goes first and the year conversion is the next press.
 
 ### One shortcut for everything
 
@@ -56,7 +60,8 @@ A ค.ศ. result is always written in Arabic digits, whatever the พ.ศ. year
 | Mostly Latin letters | the language fix only |
 | Thai letters that look mistyped | the language fix only |
 | An amount in Thai words | the number |
-| Contains digits | other digit script, year (if it has one), amount in words (if it is a number) |
+| Has a year with พ.ศ. / ค.ศ. | the other era, then the digit switch |
+| Contains digits | other digit script, amount in words (if it is a number) |
 | Anything else with letters | the language fix |
 
 Features the user has switched off are left out.

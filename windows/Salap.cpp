@@ -37,7 +37,7 @@ using std::min;
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 
-#define SALAP_VERSION L"0.3.0"
+#define SALAP_VERSION L"0.3.1"
 
 namespace {
 
@@ -54,7 +54,7 @@ enum Str {
     S_DISTANCE, S_COLOR_TH, S_COLOR_EN,
     S_SAVE, S_CANCEL, S_HK_FAIL,
     S_EX_TITLE, S_EX_INFO, S_EX_BUILTIN, S_EX_ADD_RUNNING, S_EX_BROWSE, S_EX_REMOVE,
-    S_EX_CLOSE, S_EX_NONE_RUNNING,
+    S_EX_CLOSE, S_EX_NONE_RUNNING, S_YEAR_HINT,
     S_COUNT
 };
 
@@ -80,7 +80,7 @@ const wchar_t* const kEn[] = {
     L"The shortcut does these. Press it again for the next one:",
     L"Fix text typed in the wrong language",
     L"Switch Thai / Arabic numerals",
-    L"Convert year (พ.ศ. ⇄ ค.ศ.)",
+    L"Convert year: select พ.ศ. or ค.ศ. together with the year",
     L"Amount in Thai words ⇄ number",
     L"Keep the converted text selected",
     L"Apps where Salap is off…",
@@ -105,6 +105,7 @@ const wchar_t* const kEn[] = {
     L"Remove",
     L"Close",
     L"(no other apps are open)",
+    L"To convert a year, select it together with พ.ศ. or ค.ศ.\n\nFor example: select “พ.ศ. 2569”, not just “2569”.",
 };
 
 const wchar_t* const kTh[] = {
@@ -129,7 +130,7 @@ const wchar_t* const kTh[] = {
     L"ปุ่มลัดจะทำสิ่งเหล่านี้ กดซ้ำเพื่อเปลี่ยนเป็นแบบถัดไป:",
     L"แก้ข้อความที่พิมพ์ผิดภาษา",
     L"สลับเลขไทย / เลขอารบิก",
-    L"แปลงปี (พ.ศ. ⇄ ค.ศ.)",
+    L"แปลงปี: ต้องเลือกคำว่า พ.ศ. หรือ ค.ศ. พร้อมกับปี",
     L"จำนวนเงินเป็นตัวอักษร ⇄ ตัวเลข",
     L"เลือกข้อความที่แปลงแล้วค้างไว้",
     L"แอปที่ไม่ให้ Salap ทำงาน…",
@@ -154,6 +155,7 @@ const wchar_t* const kTh[] = {
     L"ลบ",
     L"ปิด",
     L"(ไม่มีแอปอื่นเปิดอยู่)",
+    L"การแปลงปีต้องเลือกคำว่า พ.ศ. หรือ ค.ศ. พร้อมกับปีด้วย\n\nเช่น เลือก “พ.ศ. 2569” ไม่ใช่เลือกแค่ “2569”",
 };
 
 static_assert(ARRAYSIZE(kEn) == S_COUNT, "English strings out of step with Str");
@@ -844,7 +846,11 @@ void RunAction(Kind kind, bool fromMenu) {
         case K_YEAR: {
             int n = 0;
             out = W(salap::convert_years(U(sel), &n));
-            if (!n) return giveUp();
+            if (!n) {
+                RestoreClipboard(backup);
+                MessageBoxW(nullptr, T(S_YEAR_HINT), L"Salap", MB_ICONINFORMATION | MB_OK | MB_SETFOREGROUND);
+                return;
+            }
             break;
         }
         case K_UNDO:
