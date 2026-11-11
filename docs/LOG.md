@@ -49,6 +49,9 @@ A small macOS and Windows app for Thai users that fixes text typed in the wrong 
 | 2026-11-11 | Keep the year feature. Dotted labels convert on the first press; undotted ones (พศ 2569) switch digits first and convert the year on the next press. | @kafaak offered to drop the feature over cases like licence plates. The dotted form is unambiguous, the undotted form is only one press further away, and the feature can be unticked in Settings. Chosen by Claude. |
 | 2026-11-11 | Settings and the tray menu say that พ.ศ. or ค.ศ. must be selected with the year; the tray command explains this when it finds no labelled year. | Requested by @kafaak. |
 | 2026-11-11 | Year conversion can be used both ways, by the user's choice: ticked in Settings it is part of the shortcut; unticked it is in the tray menu only. The same holds for every conversion, and Settings says so. | @kafaak: "keep both", after weighing shortcut against menu-only. |
+| 2026-11-11 | **"Remember language per app" is dropped** from the scope. | Decided by @kafaak. Windows has a built-in per-window option, and Salap could only ask other apps to switch, which some ignore. |
+| 2026-11-11 | Agreed for 0.4.0, not yet built: the shortcut does only the language fix, the numeral switch and labelled-year conversion. Amount in Thai words leaves the shortcut and Settings and becomes three tray-menu commands: number → Thai words, Thai words → Arabic number, Thai words → Thai number. | Decided by @kafaak: words in the shortcut "will only make it complicated". Waiting for the go-ahead to build. |
+| 2026-11-11 | Tap counts (3× for year, 4× for words) are not used. | Considered and set aside: every conversion would wait half a second for more taps, and counting taps is error-prone. |
 
 ## Approved scope
 
@@ -65,7 +68,7 @@ Extras
 8. พ.ศ. ⇄ ค.ศ. year conversion.
 9. Undo last conversion.
 10. Excluded apps.
-11. Remember language per app.
+11. ~~Remember language per app.~~ Dropped on 2026-11-11.
 12. Learned words for auto-correct.
 13. Thai and English interface, following the system language.
 14. Fully offline: no network, no telemetry.
@@ -84,7 +87,7 @@ Extras
 | 8 | พ.ศ. ⇄ ค.ศ. | Done | Built, untested | Not started |
 | 9 | Undo last conversion, with its own shortcut | n/a | Rebuilt in 0.2.0, untested | Not started |
 | 10 | Excluded apps, with its own window | n/a | Rebuilt in 0.2.0, untested | Not started |
-| 11 | Remember language per app | n/a | Not started | Not started |
+| 11 | ~~Remember language per app~~ | n/a | Dropped | Dropped |
 | 12 | Learned words | Not started | Not started | Not started |
 | 13 | Thai and English interface | n/a | Built, untested | Not started |
 | 14 | Fully offline | Done | Done (no network code) | Not started |
