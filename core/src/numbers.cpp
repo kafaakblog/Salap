@@ -180,6 +180,9 @@ std::u32string convert_years(std::u32string_view text, int* converted) {
     std::u32string out(text);
     int count = 0;
     size_t n = out.size();
+    bool any_thai_digit = false;
+    for (char32_t c : out)
+        if (is_thai_digit(c)) any_thai_digit = true;
     size_t i = 0;
     while (i < n) {
         if (!is_digit(out[i])) {
@@ -215,7 +218,10 @@ std::u32string convert_years(std::u32string_view text, int* converted) {
             continue;
         }
 
-        char32_t zero = thai ? char32_t(0x0E50) : U'0';
+        // ค.ศ. years are always written in Arabic digits. พ.ศ. years follow
+        // the text around them: Thai digits if the text uses any.
+        bool thai_out = be_to_ce ? false : (thai || any_thai_digit);
+        char32_t zero = thai_out ? char32_t(0x0E50) : U'0';
         for (size_t k = i; k-- > start;) {
             out[k] = zero + (result % 10);
             result /= 10;

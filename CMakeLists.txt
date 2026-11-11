@@ -4,6 +4,8 @@ project(Salap VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+# Link the C++ runtime into the program so it runs without extra installs.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 if(MSVC)
   # Sources contain Thai text; read and emit them as UTF-8.
@@ -14,6 +16,7 @@ endif()
 
 add_library(salap_core STATIC
   core/src/encoding.cpp
+  core/src/helpers.cpp
   core/src/layout.cpp
   core/src/numbers.cpp
   core/src/salap_c.cpp
@@ -24,3 +27,11 @@ enable_testing()
 add_executable(salap_core_tests tests/core_tests.cpp)
 target_link_libraries(salap_core_tests PRIVATE salap_core)
 add_test(NAME core COMMAND salap_core_tests)
+
+if(WIN32)
+  add_executable(Salap WIN32 windows/Salap.cpp)
+  target_link_libraries(Salap PRIVATE salap_core gdiplus comctl32 shell32 user32 gdi32 advapi32)
+  if(MINGW)
+    target_link_options(Salap PRIVATE -municode -static)
+  endif()
+endif()

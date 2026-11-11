@@ -4,6 +4,7 @@
 // these and handle everything that talks to the system.
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <string_view>
 
@@ -52,8 +53,10 @@ bool baht_text(std::u32string_view number, std::u32string& out);
 
 // ---- Buddhist Era <-> Common Era years ------------------------------------
 // Converts every standalone four-digit year: 2400-2700 is read as พ.ศ. and
-// becomes ค.ศ.; 1857-2157 is read as ค.ศ. and becomes พ.ศ. The digit script
-// is kept, and a "พ.ศ." / "ค.ศ." label right before the year is swapped too.
+// becomes ค.ศ.; 1857-2157 is read as ค.ศ. and becomes พ.ศ. A ค.ศ. result is
+// always in Arabic digits; a พ.ศ. result is in Thai digits if the text has any
+// Thai digit, otherwise Arabic. A "พ.ศ." / "ค.ศ." label right before the year
+// is swapped too.
 // `converted`, if given, receives how many years were changed.
 std::u32string convert_years(std::u32string_view text, int* converted = nullptr);
 
@@ -69,5 +72,32 @@ Action smart_action(std::u32string_view text);
 
 // What pressing the shortcut again should switch to.
 Action alternate_action(Action a);
+
+// ---- Helpers for the apps --------------------------------------------------
+
+// How many times the caret has to move to cross `text`: Thai vowels and tone
+// marks that sit above or below a consonant, other combining marks, and the
+// second half of a CR LF pair do not count. Used to re-select converted text.
+size_t caret_steps(std::u32string_view text);
+
+struct Rect {
+    int left, top, right, bottom;  // right and bottom are exclusive
+};
+struct Point {
+    int x, y;
+};
+struct BadgeInput {
+    Point pointer;         // pointer position (the hotspot) on screen
+    int cursor_w, cursor_h;  // size of the cursor image as displayed
+    int hot_x, hot_y;        // hotspot inside that image
+    int badge_w, badge_h;
+    int gap;                 // space to leave between cursor and badge
+    Rect screen;             // the monitor the pointer is on
+};
+
+// Top-left corner for the language badge: below and to the right of the
+// cursor image, flipped to the other side at the right and bottom edges, and
+// always inside the screen when it fits.
+Point place_badge(const BadgeInput& in);
 
 }  // namespace salap

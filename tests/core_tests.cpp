@@ -151,8 +151,14 @@ static void test_years() {
     EQ(convert_years(U"2569", &n), U"2026");
     OK(n == 1);
     EQ(convert_years(U"2026"), U"2569");
-    EQ(convert_years(U"๒๕๖๙"), U"๒๐๒๖");
-    EQ(convert_years(U"พ.ศ. ๒๕๖๙"), U"ค.ศ. ๒๐๒๖");
+    // ค.ศ. is always written in Arabic digits.
+    EQ(convert_years(U"๒๕๖๙"), U"2026");
+    EQ(convert_years(U"พ.ศ. ๒๕๖๙"), U"ค.ศ. 2026");
+    EQ(convert_years(U"ค.ศ. ๒๐๒๖"), U"พ.ศ. ๒๕๖๙");
+    // พ.ศ. follows the surrounding text: Thai digits if it uses any.
+    EQ(convert_years(U"วันที่ ๑๑ พฤศจิกายน ค.ศ. 2026"), U"วันที่ ๑๑ พฤศจิกายน พ.ศ. ๒๕๖๙");
+    EQ(convert_years(U"วันที่ 11 พฤศจิกายน ค.ศ. 2026"), U"วันที่ 11 พฤศจิกายน พ.ศ. 2569");
+    EQ(convert_years(U"วันที่ ๑๑ พฤศจิกายน พ.ศ. ๒๕๖๙"), U"วันที่ ๑๑ พฤศจิกายน ค.ศ. 2026");
     EQ(convert_years(U"ค.ศ.2026"), U"พ.ศ.2569");
     EQ(convert_years(U"วันที่ 11 พฤศจิกายน 2569"), U"วันที่ 11 พฤศจิกายน 2026");
     EQ(convert_years(U"2540-2569", &n), U"1997-2026");
@@ -183,6 +189,70 @@ static void test_smart_action() {
     OK(alternate_action(Action::None) == Action::None);
 }
 
+static void test_caret_steps() {
+    OK(caret_steps(U"") == 0);
+    OK(caret_steps(U"hello") == 5);
+    OK(caret_steps(U"สวัสดี") == 4);      // ส ว(ั) ส ด(ี)
+    OK(caret_steps(U"เข้าใจ") == 5);      // เ ข(้) า ใ จ
+    OK(caret_steps(U"น้ำ") == 2);         // น(้) ำ
+    OK(caret_steps(U"a\r\nb") == 3);
+    OK(caret_steps(U"a\nb") == 3);
+    OK(caret_steps(U"๑๒๓") == 3);
+}
+
+static void test_badge() {
+    const Rect screen{0, 0, 1920, 1080};
+    const Rect second{-1280, 200, 0, 1224};  // a monitor to the left, offset down
+    const int sizes[] = {32, 48, 64, 96, 128, 256};
+    int cases = 0;
+    for (const Rect& sc : {screen, second}) {
+        for (int size : sizes) {
+            for (int hot : {0, size / 4, size / 2}) {       // arrow, hand, I-beam
+                for (int fx = 0; fx <= 10; ++fx) {
+                    for (int fy = 0; fy <= 10; ++fy) {
+                        BadgeInput in{};
+                        in.pointer = {sc.left + (sc.right - sc.left - 1) * fx / 10,
+                                      sc.top + (sc.bottom - sc.top - 1) * fy / 10};
+                        in.cursor_w = in.cursor_h = size;
+                        in.hot_x = in.hot_y = hot;
+                        in.badge_w = 30;
+                        in.badge_h = 20;
+                        in.gap = 3;
+                        in.screen = sc;
+                        Point p = place_badge(in);
+                        ++cases;
+                        bool inside = p.x >= sc.left && p.y >= sc.top &&
+                                      p.x + in.badge_w <= sc.right && p.y + in.badge_h <= sc.bottom;
+                        bool covers = in.pointer.x >= p.x && in.pointer.x < p.x + in.badge_w &&
+                                      in.pointer.y >= p.y && in.pointer.y < p.y + in.badge_h;
+                        if (!inside || covers) {
+                            std::printf("badge case: size %d hot %d at %d,%d -> %d,%d\n", size, hot,
+                                        in.pointer.x, in.pointer.y, p.x, p.y);
+                        }
+                        OK(inside);
+                        OK(!covers);
+                    }
+                }
+            }
+        }
+    }
+    OK(cases == 2 * 6 * 3 * 121);
+
+    // Away from the edges the badge sits below and to the right.
+    BadgeInput in{{500, 500}, 32, 32, 0, 0, 30, 20, 3, screen};
+    Point p = place_badge(in);
+    OK(p.x > 500 && p.y > 500);
+    // A larger pointer pushes it further out.
+    BadgeInput big = in;
+    big.cursor_w = big.cursor_h = 128;
+    Point q = place_badge(big);
+    OK(q.x > p.x && q.y > p.y);
+    // At the bottom-right corner it flips to the top-left of the pointer.
+    in.pointer = {1915, 1075};
+    p = place_badge(in);
+    OK(p.x + 30 <= 1915 && p.y + 20 <= 1075);
+}
+
 static void test_c_api() {
     char* s = salap_convert_layout("l;ylfu", 0);
     OK(s && std::strcmp(s, to_utf8(U"สวัสดี").c_str()) == 0);
@@ -210,6 +280,8 @@ int main() {
     test_baht_text();
     test_years();
     test_smart_action();
+    test_caret_steps();
+    test_badge();
     test_c_api();
     if (g_failures) {
         std::printf("%d of %d checks failed\n", g_failures, g_checks);
