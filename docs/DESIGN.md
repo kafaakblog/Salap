@@ -111,7 +111,9 @@ Defaults: Ctrl tapped twice converts, Ctrl+Alt+Z undoes.
 
 ## Planned next
 
-1. Hands-on testing of the Windows build, then fixes.
-2. **Wrong-language detection** in the core: decide whether a typed word is gibberish on its layout and sensible on the other. Needed for auto-correct.
-3. Windows extras: language per app, learned words, hiding the badge over full-screen apps, an installer.
+1. Windows 0.4.0: amount in Thai words moves out of the shortcut into three tray-menu commands.
+2. Hands-on testing of the Windows build, then fixes.
+3. Windows extras: hiding the badge over full-screen apps, an installer.
 4. **macOS app**: the same features, in Swift.
+
+Set aside, not planned: auto-correct while typing and its learned-words list (see the log), and remembering the language per app.

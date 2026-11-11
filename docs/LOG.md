@@ -52,12 +52,14 @@ A small macOS and Windows app for Thai users that fixes text typed in the wrong 
 | 2026-11-11 | **"Remember language per app" is dropped** from the scope. | Decided by @kafaak. Windows has a built-in per-window option, and Salap could only ask other apps to switch, which some ignore. |
 | 2026-11-11 | Agreed for 0.4.0, not yet built: the shortcut does only the language fix, the numeral switch and labelled-year conversion. Amount in Thai words leaves the shortcut and Settings and becomes three tray-menu commands: number → Thai words, Thai words → Arabic number, Thai words → Thai number. | Decided by @kafaak: words in the shortcut "will only make it complicated". Waiting for the go-ahead to build. |
 | 2026-11-11 | Tap counts (3× for year, 4× for words) are not used. | Considered and set aside: every conversion would wait half a second for more taps, and counting taps is error-prone. |
+| 2026-11-11 | **Auto-correct while typing is set aside as a "dream feature"**, not planned. If it is ever built it fixes the language only, never numbers. | Decided by @kafaak. It needs Salap to watch all typing, real Thai and English word lists, and retyping in other apps; wrong guesses change text the user did not ask to change. |
+| 2026-11-11 | **"Learned words" is set aside with it.** | It exists only to stop auto-correct from fixing words the user has approved, so it has no use without auto-correct. |
 
 ## Approved scope
 
 Core
 1. Fix selected wrong-language text (English ⇄ Thai Kedmanee) from the menu or a shortcut.
-2. Auto-correct while typing (off by default, undoable).
+2. Auto-correct while typing (off by default, undoable). Set aside as a dream feature on 2026-11-11.
 3. Toggle selected numerals between Thai and Arabic.
 4. Language badge at the mouse pointer, positioned from the real pointer size and hotspot.
 5. Settings: run at login, turn each feature on or off, custom shortcuts.
@@ -69,7 +71,7 @@ Extras
 9. Undo last conversion.
 10. Excluded apps.
 11. ~~Remember language per app.~~ Dropped on 2026-11-11.
-12. Learned words for auto-correct.
+12. Learned words for auto-correct. Set aside with auto-correct on 2026-11-11.
 13. Thai and English interface, following the system language.
 14. Fully offline: no network, no telemetry.
 
@@ -78,7 +80,7 @@ Extras
 | # | Feature | Engine | Windows | macOS |
 |---|---|---|---|---|
 | 1 | Fix selected wrong-language text | Done | Built, untested | Not started |
-| 2 | Auto-correct while typing | Not started | Not started | Not started |
+| 2 | Auto-correct while typing | Dream feature, not planned | — | — |
 | 3 | Thai ⇄ Arabic numerals | Done | Built, untested | Not started |
 | 4 | Language badge: position, distance, colors | Placement done | Rebuilt in 0.2.0, untested | Not started |
 | 5 | Settings: run at login, feature switches, shortcuts | n/a | Rebuilt in 0.2.0, untested | Not started |
@@ -88,7 +90,7 @@ Extras
 | 9 | Undo last conversion, with its own shortcut | n/a | Rebuilt in 0.2.0, untested | Not started |
 | 10 | Excluded apps, with its own window | n/a | Rebuilt in 0.2.0, untested | Not started |
 | 11 | ~~Remember language per app~~ | n/a | Dropped | Dropped |
-| 12 | Learned words | Not started | Not started | Not started |
+| 12 | Learned words | Dream feature, not planned | — | — |
 | 13 | Thai and English interface | n/a | Built, untested | Not started |
 | 14 | Fully offline | Done | Done (no network code) | Not started |
 
@@ -125,7 +127,6 @@ Extras
 - **Windows 0.3.2 still needs checking by hand:** year conversion, the number cycle, undo, the Settings window, the excluded-apps window, and badge position, distance and colors with a normal and an enlarged pointer.
 - English text with a number in it cannot have its digits switched by the shortcut (tray menu only).
 - The icon is detailed and blurs at the 16-pixel tray size; a simplified small version would be sharper.
-- Wrong-language detection is a spelling-rules hint only; a stronger check is needed before auto-correct.
 - How Windows reports the enlarged pointer size is an assumption (`CursorBaseSize` × screen scaling); to be checked on a real PC.
 - Re-selecting the converted text assumes one Left-arrow press per Thai character cluster; apps may differ.
 - Name "Salap" not yet checked against existing apps and trademarks.
